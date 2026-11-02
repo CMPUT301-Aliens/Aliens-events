@@ -6,7 +6,7 @@ import java.util.Date
 data class Campsite(
     val id: String = "",
     val ownerId: String = "",
-    val campsiteName: String = "",
+    val name: String = "",
     val location: String = "",
     val coordinates: GeoPoint? = null,
     val description: String = "",
