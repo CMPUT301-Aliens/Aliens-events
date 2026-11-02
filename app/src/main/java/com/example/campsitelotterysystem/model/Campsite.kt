@@ -3,23 +3,6 @@ package com.example.campsitelotterysystem.model
 import com.google.firebase.firestore.GeoPoint
 import java.util.Date
 
-/**
- * Campsite (model): holds one campsite's data. Never talks to Firestore.
- *
- * FLOW: Screen builds it → Controller checks it → CampsiteDB saves it → Firestore "campsites"
- *
- * TODO
- * - Fields (each with a type + default value, so Firestore can read it back):
- *   id, ownerId, name, location, coordinates (GeoPoint), description, maximumOccupancy,
- *   pricePerNight, averageRating, promotionalImages, rulesAndPolicy, tags, availableDates,
- *   qrCodeData, published
- * - id → set by CampsiteDB | ownerId → set by Controller
- * - KDoc on fields
- *
- * NOT MINE: averageRating (final), qrCodeData (final). Keep the fields, don't build features.
-*/
-
-
 data class Campsite(
     val id: String = "",
     val ownerId: String = "",
