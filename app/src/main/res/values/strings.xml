@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">CampsiteLotterySystem</string>
+    <string name="title_activity_lottery_edit">LotteryEditActivity</string>
 </resources>
