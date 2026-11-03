@@ -23,6 +23,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".ui.LotteryEditActivity"
+            android:exported="false"
+            android:label="@string/title_activity_lottery_edit"
+            android:theme="@style/Theme.CampsiteLotterySystem"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>
