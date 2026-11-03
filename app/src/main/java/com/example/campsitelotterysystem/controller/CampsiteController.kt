@@ -77,14 +77,8 @@ class CampsiteController (private val campsiteDB: CampsiteDB){
         campsiteDB.getCampsitesByOwner(ownerId, onSuccess, onFailure)
     }
 
-    fun getAllCampsites(onSuccess: (Campsite?) -> Unit, onFailure: (Exception) -> Unit):{
+    fun getAllCampsites(onSuccess: (List<Campsite>) -> Unit, onFailure: (Exception) -> Unit) {
         campsiteDB.getAllCampsites(onSuccess, onFailure)
-    } // add this function to CampsiteDB
-//override fun getAllCampsites(onSuccess: (List<Campsite>) -> Unit, onFailure: (Exception) -> Unit) {
-//    campsites.get()
-//        .addOnSuccessListener { documents -> onSuccess(documents.toObjects(Campsite::class.java))}
-//        .addOnFailureListener { exception -> onFailure(exception)}
-//}
-
+    }
 
 }
