@@ -5,22 +5,18 @@ import com.example.campsitelotterysystem.model.Notification
 
 
 class NotificationController (private val notificationDB: NotificationDB){
-    // The following use of maps is adapted from Anthropic, Claude, "kotlin dictionary where key is string and value is array of custom class that can be appended to easily", 2026-11-02
     private val receivedNotifications = mutableMapOf<String, MutableList<Notification>>()
     private val sentNotifications = mutableMapOf<String, MutableList<Notification>>()
 
-    fun sendNotification(recipientIds: List<String>, senderId: String,  notification: Notification) {
-
-
-
-
-
-
-
-
+    fun sendNotification(recipientIds: List<String>, senderId: String,  notification: Notification,
+                         onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        //iterates across all recipients and sends to each one after checking their notification settings
+        for (id in recipientIds) {
+            notificationDB.saveIncomingNotification(recipientId = id, notification = notification, onSuccess, onFailure)
+        }
+        notificationDB.saveOutgoingNotification(senderId, notification, onSuccess, onFailure)
+        notificationDB.logNotification(notification, onSuccess, onFailure)
     }
-
-
 
 
 }
