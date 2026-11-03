@@ -1,13 +1,12 @@
 package com.example.campsitelotterysystem.model
 
-import java.util.Date
-
+import java.time.Instant
 
 class NotificationLog(
-    id: String,
-    timestamp: Date,
-    senderId: String,
-    recipientId: String,
-    messageContent: String,
-    type: String  //("lottery_win", "campsite_update", "cancellation")
+    val id: String = "",
+    val timestamp: Instant = Instant.now(),
+    val senderId: String = "",
+    val recipientId: String = "",
+    val messageContent: String = "",
+    val type: String = ""  //("lottery_win", "campsite_update", "cancellation")
 )
