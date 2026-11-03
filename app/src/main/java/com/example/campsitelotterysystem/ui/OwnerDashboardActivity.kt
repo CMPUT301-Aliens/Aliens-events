@@ -40,15 +40,12 @@ import com.example.campsitelotterysystem.ui.theme.CampsiteLotterySystemTheme
 
 
 class OwnerDashboardActivity : ComponentActivity() {
-    // screen opens
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // set up controller and owner id
         val controller = CampsiteController(FirestoreCampsiteDB())
         val ownerId = getCurrentUserId(this)
 
-        // screen
         setContent {
             CampsiteLotterySystemTheme {
                 ownerDashboardScreen(controller, ownerId)
@@ -97,7 +94,7 @@ fun ownerDashboardScreen(controller: CampsiteController, ownerId: String) {
             Text(errorMessages)
         }
 
-        // 8. show the empty message or the list
+
         if (campsites.isEmpty()) {
             Text ("you haven't registered any campsites yet ")
         }else {
