@@ -3,7 +3,7 @@ package com.example.campsitelotterysystem.model
 import java.util.Date
 
 
-class SystemAndNotificationLog(
+class NotificationLog(
     id: String,
     timestamp: Date,
     senderId: String,
