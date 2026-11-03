@@ -1,4 +1,14 @@
 package com.example.campsitelotterysystem.model
 
-class Notification {
-}
+import com.google.firebase.firestore.GeoPoint
+import java.util.Date
+
+data class Notification(
+    val senderId: String = "",
+    val recipientsIds: List<String> = listOf(),
+    val text: String = "",
+    val notificationType: String = "",
+    val timestamp: Long = Date().time,
+
+
+)
