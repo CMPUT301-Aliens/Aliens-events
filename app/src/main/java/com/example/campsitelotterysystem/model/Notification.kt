@@ -1,14 +1,12 @@
 package com.example.campsitelotterysystem.model
 
-import com.google.firebase.firestore.GeoPoint
 import java.util.Date
 
 data class Notification(
+    val id: String = "",
+    val timestamp: Date = Date(),
     val senderId: String = "",
-    val recipientsIds: List<String> = listOf(),
-    val text: String = "",
-    val notificationType: String = "",
-    val timestamp: Long = Date().time,
-
-
+    val recipientIds: List<String> = listOf(),
+    val messageContent: String = "",
+    val type: String = "" // e.g., "won", "lost", "lottery_loss", "campsite_update", "cancellation"
 )
