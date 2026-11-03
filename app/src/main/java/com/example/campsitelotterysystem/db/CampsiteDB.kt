@@ -10,6 +10,7 @@ interface CampsiteDB {
     fun updateCampsite(campsite: Campsite, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
     fun getCampsite(id : String , onSuccess: (Campsite?) -> Unit, onFailure: (Exception) -> Unit)
     fun getCampsitesByOwner(ownerId: String, onSuccess: (List<Campsite>) -> Unit, onFailure: (Exception) -> Unit)
+    fun getAllCampsites(onSuccess: (List<Campsite>) -> Unit, onFailure: (Exception) -> Unit)
 }
 
 class FirestoreCampsiteDB : CampsiteDB {
@@ -46,5 +47,11 @@ class FirestoreCampsiteDB : CampsiteDB {
         campsites.whereEqualTo("ownerId",ownerId).get()
             .addOnSuccessListener { documents -> onSuccess(documents.toObjects(Campsite::class.java)) }
             .addOnFailureListener { onFailure(it) }
+    }
+
+    override fun getAllCampsites(onSuccess: (List<Campsite>) -> Unit, onFailure: (Exception) -> Unit) {
+        campsites.get()
+            .addOnSuccessListener { documents -> onSuccess(documents.toObjects(Campsite::class.java)) }
+            .addOnFailureListener { exception -> onFailure(exception) }
     }
 }
