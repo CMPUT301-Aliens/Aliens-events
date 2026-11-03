@@ -77,4 +77,8 @@ class CampsiteController (private val campsiteDB: CampsiteDB){
         campsiteDB.getCampsitesByOwner(ownerId, onSuccess, onFailure)
     }
 
+    fun deleteCampsite(campsite: Campsite, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+        campsiteDB.removeCampsite(campsite, onSuccess, onFailure)
+    }
+
 }
