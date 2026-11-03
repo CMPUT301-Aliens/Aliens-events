@@ -40,4 +40,10 @@ class FirestoreCampsiteDB : CampsiteDB {
             .addOnSuccessListener { documents -> onSuccess(documents.toObjects(Campsite::class.java)) }
             .addOnFailureListener { onFailure(it) }
     }
+    
+    override fun getAllCampsites(onSuccess: (List<Campsite>) -> Unit, onFailure: (Exception) -> Unit) {
+       campsites.get()
+           .addOnSuccessListener { documents -> onSuccess(documents.toObjects(Campsite::class.java))}
+           .addOnFailureListener { exception -> onFailure(exception)}
+    }
 }
