@@ -12,10 +12,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.campsitelotterysystem.ui.theme.CampsiteLotterySystemTheme
+import android.util.Log
+import com.example.campsitelotterysystem.db.FirestoreUserDB
+import com.example.campsitelotterysystem.db.getCurrentUserId
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val deviceId = getCurrentUserId(this)
+
+        FirestoreUserDB().getOrCreateUser(
+            deviceId,
+            onSuccess = { user -> Log.d("UserDB", "Loaded user: $user") },
+            onFailure = { e -> Log.e("UserDB", "Failed to load user", e) }
+        )
         enableEdgeToEdge()
         setContent {
             CampsiteLotterySystemTheme {
