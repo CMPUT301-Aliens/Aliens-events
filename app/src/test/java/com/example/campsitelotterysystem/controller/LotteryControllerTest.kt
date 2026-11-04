@@ -32,6 +32,9 @@ class LotteryControllerTest {
             updated.add(lottery)
             onSuccess()
         }
+        override fun removeAllLotteriesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+            onSuccess()
+        }
     }
 
     private val validLottery = Lottery(
