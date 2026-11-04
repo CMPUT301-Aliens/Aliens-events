@@ -7,7 +7,7 @@ import com.example.campsitelotterysystem.model.Lottery
  * Purpose: Checks and saves lotteries.
  * Role: Sits between LotteryEditActivity and LotteryDB. Invalid lotteries are never saved.
  * Outstanding issues: The draw (#35), the waitlist (#41), getOpenLotteryForCampsite,
- * removeUserFromWaitlists, and removeCampsiteFromLotteries are not built yet.
+ * and removeCampsiteFromLotteries are not built yet.
  */
 class LotteryController(private val lotteryDB: LotteryDB) {
     /** Returns a list of problems with the lottery, or an empty list if it is valid. */
@@ -76,6 +76,32 @@ class LotteryController(private val lotteryDB: LotteryDB) {
 
 
     }
+
+
+    fun removeUserFromWaitlists(userId: String, onSuccess: () -> Unit = {}, onFailure: (Exception) -> Unit = {}) {
+        lotteryDB.getLotteriesWithUserInWaitlist(userId, onSuccess = { userLotteries ->
+            if (userLotteries.isEmpty()) {
+                onSuccess()
+                return@getLotteriesWithUserInWaitlist
+            }
+            var processedCount = 0
+            userLotteries.forEach { lottery ->
+                // Create a new list without the deleted user's ID
+                val updatedWaitlist = lottery.waitingList.filter { it != userId }
+                val updatedLottery = lottery.copy(waitingList = updatedWaitlist)
+                // Save the updated lottery back to Datbase
+                lotteryDB.updateLottery(updatedLottery, onSuccess = {
+                    processedCount++
+                    if (processedCount == userLotteries.size) onSuccess()
+                }, onFailure = {
+                    onFailure(it)
+                })
+            }
+        }, onFailure = {
+            onFailure(it)
+        })
+    }
+
 
 
 }

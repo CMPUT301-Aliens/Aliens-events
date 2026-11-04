@@ -35,6 +35,9 @@ class LotteryControllerTest {
         override fun removeAllLotteriesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
             onSuccess()
         }
+        override fun getLotteriesWithUserInWaitlist(userId: String, onSuccess: (List<Lottery>) -> Unit, onFailure: (Exception) -> Unit) {
+            onSuccess(emptyList())
+        }
     }
 
     private val validLottery = Lottery(

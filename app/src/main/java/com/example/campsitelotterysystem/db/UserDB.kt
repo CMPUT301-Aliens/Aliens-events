@@ -2,6 +2,7 @@ package com.example.campsitelotterysystem.db
 
 import android.content.Context
 import android.provider.Settings
+import com.example.campsitelotterysystem.model.Campsite
 import com.example.campsitelotterysystem.model.User
 
 /**
@@ -22,6 +23,7 @@ interface UserDB {
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     )
+    fun getAllUsers(onSuccess: (List<User>) -> Unit, onFailure: (Exception) -> Unit)
 }
 
 /** Returns this device's ID, used as the user ID everywhere in the app. */
@@ -90,5 +92,11 @@ class FirestoreUserDB : UserDB {
             },
             onFailure = { onFailure(it) }
         )
+    }
+
+    override fun getAllUsers(onSuccess: (List<User>) -> Unit, onFailure: (Exception) -> Unit) {
+        users.get()
+            .addOnSuccessListener { documents -> onSuccess(documents.toObjects(User::class.java)) }
+            .addOnFailureListener { exception -> onFailure(exception) }
     }
 }
