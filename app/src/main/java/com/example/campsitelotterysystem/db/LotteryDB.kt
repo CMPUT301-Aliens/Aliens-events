@@ -5,6 +5,7 @@ import com.example.campsitelotterysystem.model.Lottery
 interface LotteryDB {
     fun addLottery(lottery: Lottery, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit)
     fun updateLottery(lottery: Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
+    fun removeAllLotteriesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
 }
 
 class FirestoreLotteryDB : LotteryDB {
@@ -21,8 +22,23 @@ class FirestoreLotteryDB : LotteryDB {
         lotteries.document(lottery.id).set(lottery)
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { onFailure(it) }
-
-
     }
 
+    override fun removeAllLotteriesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        lotteries.whereEqualTo("ownerId", ownerId).get()
+            .addOnSuccessListener { documents ->
+                if (documents.isEmpty) {
+                    onSuccess()
+                    return@addOnSuccessListener
+                }
+                val batch = DBConnector.db.batch()
+                for (doc in documents) {
+                    batch.delete(doc.reference)
+                }
+                batch.commit()
+                    .addOnSuccessListener { onSuccess() }
+                    .addOnFailureListener { onFailure(it) }
+            }
+            .addOnFailureListener { onFailure(it) }
+    }
 }
