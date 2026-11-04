@@ -6,6 +6,7 @@ interface LotteryDB {
     fun addLottery(lottery: Lottery, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit)
     fun updateLottery(lottery: Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
     fun removeAllLotteriesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
+    fun getLotteriesWithUserInWaitlist(userId: String, onSuccess: (List<Lottery>) -> Unit, onFailure: (Exception) -> Unit)
 }
 
 class FirestoreLotteryDB : LotteryDB {
@@ -39,6 +40,11 @@ class FirestoreLotteryDB : LotteryDB {
                     .addOnSuccessListener { onSuccess() }
                     .addOnFailureListener { onFailure(it) }
             }
+            .addOnFailureListener { onFailure(it) }
+    }
+    override fun getLotteriesWithUserInWaitlist(userId: String, onSuccess: (List<Lottery>) -> Unit, onFailure: (Exception) -> Unit) {
+        lotteries.whereArrayContains("waitingList", userId).get()
+            .addOnSuccessListener { documents -> onSuccess(documents.toObjects(Lottery::class.java)) }
             .addOnFailureListener { onFailure(it) }
     }
 }
