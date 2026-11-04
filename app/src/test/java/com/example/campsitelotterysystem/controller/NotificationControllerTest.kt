@@ -11,7 +11,7 @@ import java.util.Date
 
 /** Unit tests for NotificationController's saving and reading, using a fake database. */
 /** Tests for reading not implemented yet as said methods are not implemented in NotificationController*/
-class LotteryControllerTest {
+class NotificationControllerTest {
 
     /** A pretend database that remembers what it was asked to save. */
     private class FakeNotificationDB : NotificationDB {
