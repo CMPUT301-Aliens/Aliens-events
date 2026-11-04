@@ -1,0 +1,123 @@
+package com.example.campsitelotterysystem.controller
+
+import com.example.campsitelotterysystem.db.LotteryDB
+import com.example.campsitelotterysystem.model.Lottery
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.util.Date
+
+class LotteryControllerTest {
+
+    /** A pretend database that remembers what it was asked to save. */
+    private class FakeLotteryDB : LotteryDB {
+        val added = mutableListOf<Lottery>()
+        val updated = mutableListOf<Lottery>()
+
+        override fun addLottery(lottery: Lottery, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+            added.add(lottery)
+            onSuccess("fake-id")
+        }
+
+        override fun updateLottery(lottery: Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+            updated.add(lottery)
+            onSuccess()
+        }
+    }
+
+    private val validLottery = Lottery(
+        campsiteIds = listOf("campsite-1"),
+        numberOfWinners = 2,
+        registrationStartDate = Date(1000),
+        registrationEndDate = Date(2000),
+        bookingStartDate = Date(3000),
+        bookingEndDate = Date(4000)
+    )
+
+    private val controller = LotteryController(FakeLotteryDB())
+
+    @Test
+    fun validLotteryHasNoErrors() {
+        assertTrue(controller.validateLottery(validLottery).isEmpty())
+    }
+
+    @Test
+    fun noCampsiteIsAnError() {
+        val errors = controller.validateLottery(validLottery.copy(campsiteIds = emptyList()))
+        assertEquals(listOf("Choose at least one campsite."), errors)
+    }
+
+    @Test
+    fun zeroWinnersIsAnError() {
+        val errors = controller.validateLottery(validLottery.copy(numberOfWinners = 0))
+        assertEquals(listOf("Number of winners must be greater than zero."), errors)
+    }
+
+    @Test
+    fun registrationEndBeforeStartIsAnError() {
+        val errors = controller.validateLottery(validLottery.copy(registrationEndDate = Date(500)))
+        assertTrue(errors.contains("Registration end must be after registration start."))
+    }
+
+    @Test
+    fun createSavesValidLottery() {
+        val db = FakeLotteryDB()
+        var savedId = ""
+
+        LotteryController(db).createLotteryListing(
+            validLottery,
+            onSuccess = { id -> savedId = id },
+            onInvalid = { throw AssertionError("should be valid") },
+            onFailure = { throw it }
+        )
+
+        assertEquals("fake-id", savedId)
+        assertEquals(1, db.added.size)
+    }
+
+    @Test
+    fun createDoesNotSaveInvalidLottery() {
+        val db = FakeLotteryDB()
+        var errors = emptyList<String>()
+
+        LotteryController(db).createLotteryListing(
+            validLottery.copy(numberOfWinners = 0),
+            onSuccess = { throw AssertionError("should not save") },
+            onInvalid = { errors = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals(0, db.added.size)
+        assertEquals(1, errors.size)
+    }
+
+    @Test
+    fun updateNeedsAnId() {
+        val db = FakeLotteryDB()
+        var errors = emptyList<String>()
+
+        LotteryController(db).updateLotteryListing(
+            validLottery,
+            onSuccess = { throw AssertionError("should not save") },
+            onInvalid = { errors = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals(listOf("This lottery has no ID."), errors)
+        assertEquals(0, db.updated.size)
+    }
+
+    @Test
+    fun bookingStartBeforeRegistrationEndIsAnError() {
+        val errors = controller.validateLottery(validLottery.copy(bookingStartDate = Date(1500)))
+        assertEquals(listOf("Booking start must be after registration end."), errors)
+    }
+    @Test
+    fun bookingEndBeforeStartIsAnError() {
+        val errors = controller.validateLottery(validLottery.copy(bookingEndDate = Date(2500)))
+        assertEquals(listOf("Booking end must be after booking start."), errors)
+    }
+
+
+
+}

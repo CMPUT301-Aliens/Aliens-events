@@ -40,6 +40,8 @@ import androidx.compose.material3.Button
 import com.example.campsitelotterysystem.controller.LotteryController
 import com.example.campsitelotterysystem.db.FirestoreLotteryDB
 import com.example.campsitelotterysystem.model.Lottery
+import androidx.compose.ui.platform.LocalContext
+import com.example.campsitelotterysystem.db.getCurrentUserId
 class LotteryEditActivity : ComponentActivity(){
     companion object {
         const val EXTRA_CAMPSITE_ID = "campsiteId"
@@ -62,14 +64,18 @@ class LotteryEditActivity : ComponentActivity(){
     }
 
 }
+
 @Composable
 fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val ownerId = remember { getCurrentUserId(context) }
     var numberOfWinners by remember { mutableStateOf("") }
     var registrationStart by remember { mutableStateOf<Date?>(null) }
     var registrationEnd by remember { mutableStateOf<Date?>(null) }
     var bookingStart by remember { mutableStateOf<Date?>(null) }
     var bookingEnd by remember { mutableStateOf<Date?>(null) }
     var statusMessage by remember { mutableStateOf("") }
+    var savedLottery by remember { mutableStateOf<Lottery?>(null) }
     val lotteryController = remember { LotteryController(FirestoreLotteryDB()) }
 
     val formIsFilled = numberOfWinners.isNotBlank() &&
@@ -94,7 +100,7 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
             enabled = formIsFilled,
             onClick = {
                 val lottery = Lottery(
-                    ownerId = "test-owner",
+                    ownerId = ownerId ,
                     campsiteIds = listOfNotNull(campsiteId),
                     registrationStartDate = registrationStart!!,
                     registrationEndDate = registrationEnd!!,
@@ -104,7 +110,11 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
                 )
                 lotteryController.createLotteryListing(
                     lottery,
-                    onSuccess = { id -> statusMessage = "Saved lottery: $id" },
+                    onSuccess = { id ->
+                        statusMessage = "Saved lottery: $id"
+                        savedLottery = lottery.copy(id = id)
+                    },
+                    onInvalid = { errors -> statusMessage = errors.joinToString("\n") },
                     onFailure = { error -> statusMessage = "Could not save: ${error.message}" }
                 )
             }
@@ -113,6 +123,12 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
         }
 
         Text(text = statusMessage)
+        savedLottery?.let { saved ->
+            Text("Number of winners: ${saved.numberOfWinners}")
+            Text("Registration: ${formatDateTime(saved.registrationStartDate)} to ${formatDateTime(saved.registrationEndDate)}")
+            Text("Booking: ${formatDateTime(saved.bookingStartDate)} to ${formatDateTime(saved.bookingEndDate)}")
+        }
+
     }
 }
 @OptIn(ExperimentalMaterial3Api::class)
