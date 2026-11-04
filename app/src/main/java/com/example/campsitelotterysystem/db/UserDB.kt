@@ -15,6 +15,13 @@ interface UserDB {
     fun updateProfile(user: User, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
     fun setNotificationPreference(userId: String, enabled: Boolean, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
     fun deleteProfile(userId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
+    fun deleteOwnerProfile(
+        ownerId: String,
+        campsiteDB: CampsiteDB,
+        lotteryDB: LotteryDB,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    )
 }
 
 /** Returns this device's ID, used as the user ID everywhere in the app. */
@@ -63,5 +70,25 @@ class FirestoreUserDB : UserDB {
         users.document(userId).delete()
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { onFailure(it) }
+    }
+
+    override fun deleteOwnerProfile(
+        ownerId: String,
+        campsiteDB: CampsiteDB,
+        lotteryDB: LotteryDB,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        campsiteDB.removeAllCampsitesByOwner(ownerId,
+            onSuccess = {
+                lotteryDB.removeAllLotteriesByOwner(ownerId,
+                    onSuccess = {
+                        deleteProfile(ownerId, onSuccess, onFailure)
+                    },
+                    onFailure = { onFailure(it) }
+                )
+            },
+            onFailure = { onFailure(it) }
+        )
     }
 }
