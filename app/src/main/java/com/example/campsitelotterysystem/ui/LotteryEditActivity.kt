@@ -42,7 +42,15 @@ import com.example.campsitelotterysystem.db.FirestoreLotteryDB
 import com.example.campsitelotterysystem.model.Lottery
 import androidx.compose.ui.platform.LocalContext
 import com.example.campsitelotterysystem.db.getCurrentUserId
-class LotteryEditActivity : ComponentActivity(){
+
+/**
+ * Purpose: The owner's screen for creating a lottery (#15, #17, #32).
+ * Role: Opened by the Manage Lottery button with EXTRA_CAMPSITE_ID. Sends the lottery to
+ * LotteryController and shows the result.
+ * Outstanding issues: It only creates new lotteries, and can't load or edit a saved one yet.
+ * It uses one campsite per lottery (#16 is not in this checkpoint).
+ */
+class LotteryEditActivity : ComponentActivity() {
     companion object {
         const val EXTRA_CAMPSITE_ID = "campsiteId"
     }
@@ -82,7 +90,9 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
             registrationStart != null && registrationEnd != null &&
             bookingStart != null && bookingEnd != null
 
-    Column(modifier = modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
+    Column(modifier = modifier
+        .verticalScroll(rememberScrollState())
+        .padding(16.dp)) {
         Text(text = "Lottery for campsite: $campsiteId")
 
         OutlinedTextField(
@@ -100,7 +110,7 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
             enabled = formIsFilled,
             onClick = {
                 val lottery = Lottery(
-                    ownerId = ownerId ,
+                    ownerId = ownerId,
                     campsiteIds = listOfNotNull(campsiteId),
                     registrationStartDate = registrationStart!!,
                     registrationEndDate = registrationEnd!!,
@@ -125,12 +135,19 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
         Text(text = statusMessage)
         savedLottery?.let { saved ->
             Text("Number of winners: ${saved.numberOfWinners}")
-            Text("Registration: ${formatDateTime(saved.registrationStartDate)} to ${formatDateTime(saved.registrationEndDate)}")
+            Text(
+                "Registration: ${formatDateTime(saved.registrationStartDate)} to ${
+                    formatDateTime(
+                        saved.registrationEndDate
+                    )
+                }"
+            )
             Text("Booking: ${formatDateTime(saved.bookingStartDate)} to ${formatDateTime(saved.bookingEndDate)}")
         }
 
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateTimeField(label: String, value: Date?, onValueChange: (Date) -> Unit) {
@@ -172,7 +189,13 @@ fun DateTimeField(label: String, value: Date?, onValueChange: (Date) -> Unit) {
                 TextButton(onClick = {
                     val dateMillis = dateState.selectedDateMillis
                     if (dateMillis != null) {
-                        onValueChange(combineDateAndTime(dateMillis, timeState.hour, timeState.minute))
+                        onValueChange(
+                            combineDateAndTime(
+                                dateMillis,
+                                timeState.hour,
+                                timeState.minute
+                            )
+                        )
                     }
                     showTimePicker = false
                 }) { Text("OK") }

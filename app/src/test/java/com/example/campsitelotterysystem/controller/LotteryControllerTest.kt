@@ -7,6 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Date
 
+/** Unit tests for LotteryController's validation and saving, using a fake database. */
 class LotteryControllerTest {
 
     /** A pretend database that remembers what it was asked to save. */
@@ -14,12 +15,20 @@ class LotteryControllerTest {
         val added = mutableListOf<Lottery>()
         val updated = mutableListOf<Lottery>()
 
-        override fun addLottery(lottery: Lottery, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+        override fun addLottery(
+            lottery: Lottery,
+            onSuccess: (String) -> Unit,
+            onFailure: (Exception) -> Unit
+        ) {
             added.add(lottery)
             onSuccess("fake-id")
         }
 
-        override fun updateLottery(lottery: Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        override fun updateLottery(
+            lottery: Lottery,
+            onSuccess: () -> Unit,
+            onFailure: (Exception) -> Unit
+        ) {
             updated.add(lottery)
             onSuccess()
         }
@@ -112,12 +121,12 @@ class LotteryControllerTest {
         val errors = controller.validateLottery(validLottery.copy(bookingStartDate = Date(1500)))
         assertEquals(listOf("Booking start must be after registration end."), errors)
     }
+
     @Test
     fun bookingEndBeforeStartIsAnError() {
         val errors = controller.validateLottery(validLottery.copy(bookingEndDate = Date(2500)))
         assertEquals(listOf("Booking end must be after booking start."), errors)
     }
-
 
 
 }

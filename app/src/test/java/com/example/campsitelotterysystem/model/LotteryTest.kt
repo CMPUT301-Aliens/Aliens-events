@@ -1,9 +1,11 @@
 package com.example.campsitelotterysystem.model
+
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Date
 
+/** Unit tests for Lottery.isRegistrationOpen. */
 class LotteryTest {
 
     private val lottery = Lottery(
@@ -41,6 +43,7 @@ class LotteryTest {
         val drawn = lottery.copy(status = "drawn")
         assertFalse(drawn.isRegistrationOpen(Date(1500)))
     }
+
     @Test
     fun registrationIsClosedWhenClosed() {
         val drawn = lottery.copy(status = "closed")
