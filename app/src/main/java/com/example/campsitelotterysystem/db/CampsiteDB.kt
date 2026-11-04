@@ -11,6 +11,7 @@ interface CampsiteDB {
     fun getCampsite(id : String , onSuccess: (Campsite?) -> Unit, onFailure: (Exception) -> Unit)
     fun getCampsitesByOwner(ownerId: String, onSuccess: (List<Campsite>) -> Unit, onFailure: (Exception) -> Unit)
     fun getAllCampsites(onSuccess: (List<Campsite>) -> Unit, onFailure: (Exception) -> Unit)
+    fun removeAllCampsitesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
 }
 
 class FirestoreCampsiteDB : CampsiteDB {
@@ -53,5 +54,23 @@ class FirestoreCampsiteDB : CampsiteDB {
         campsites.get()
             .addOnSuccessListener { documents -> onSuccess(documents.toObjects(Campsite::class.java)) }
             .addOnFailureListener { exception -> onFailure(exception) }
+    }
+
+    override fun removeAllCampsitesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        campsites.whereEqualTo("ownerId", ownerId).get()
+            .addOnSuccessListener { documents ->
+                if (documents.isEmpty) {
+                    onSuccess()
+                    return@addOnSuccessListener
+                }
+                val batch = DBConnector.db.batch()
+                for (doc in documents) {
+                    batch.delete(doc.reference)
+                }
+                batch.commit()
+                    .addOnSuccessListener { onSuccess() }
+                    .addOnFailureListener { onFailure(it) }
+            }
+            .addOnFailureListener { onFailure(it) }
     }
 }
