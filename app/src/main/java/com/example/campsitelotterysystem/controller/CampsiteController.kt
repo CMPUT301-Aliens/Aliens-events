@@ -38,6 +38,7 @@ class CampsiteController (private val campsiteDB: CampsiteDB){
     }
 
     fun registerCampsite(campsite: Campsite,
+                         ownerId : String,
                          onSuccess: (String) -> Unit,
                          onInvalid : (List<String>) -> Unit,
                          onFailure: (Exception) -> Unit){
@@ -48,8 +49,7 @@ class CampsiteController (private val campsiteDB: CampsiteDB){
             return
         }
 
-        // TODO(#7) : replace "test-owner" with getCurrentUserID()
-        val newCampsite = campsite.copy(ownerId = "test-owner", published = true)
+        val newCampsite = campsite.copy(ownerId = "OwnerID", published = true)
 
         campsiteDB.addCampsite(newCampsite, onSuccess, onFailure)
     }
