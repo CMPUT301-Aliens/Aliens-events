@@ -50,6 +50,32 @@ class NotificationControllerTest {
             onSuccess()
         }
 
+        override fun getIncomingNotifications(
+            userId: String,
+            onSuccess: (List<Notification>) -> Unit,
+            onFailure: (Exception) -> Unit)
+        {
+            val notificationList = incoming.getOrPut(userId) { mutableListOf<Notification>() } //if key does not exist, create value of empty notification list
+            onSuccess(notificationList)
+        }
+
+        override fun getOutgoingNotifications(
+            userId: String,
+            onSuccess: (List<Notification>) -> Unit,
+            onFailure: (Exception) -> Unit)
+        {
+            val notificationList = outgoing.getOrPut(userId) { mutableListOf<Notification>() } //if key does not exist, create value of empty notification list
+            onSuccess(notificationList)
+        }
+
+
+        override fun getLoggedNotifications(
+            onSuccess: (List<Notification>) -> Unit,
+            onFailure: (Exception) -> Unit)
+        {
+            onSuccess(all)
+        }
+
     }
 
     private val newNotification = Notification(
@@ -99,14 +125,55 @@ class NotificationControllerTest {
     private val controller = NotificationController(FakeNotificationDB())
 
     @Test
-    fun sendingNotificationHasNoErrors() {
+    fun sendingNotificationDoesNotFail() {
         controller.sendNotification(recipients = userList,
             senderId = "SENDER-ID",
             notification = newNotification,
             onSuccess = { },
             onFailure = {throw it })
+    }
 
+    @Test
+    fun canGetIncoming(){
+        var user1Incoming: List<Notification> = emptyList()
+        var user3Incoming: List<Notification> = emptyList()
+
+        controller.sendNotification(recipients = userList,
+            senderId = "SENDER-ID",
+            notification = newNotification,
+            onSuccess = { },
+            onFailure = {throw it })
+        controller.getIncomingNotifications(user1,
+            onSuccess = {incoming -> user1Incoming = incoming},
+            onFailure = {throw it}
+        )
+        controller.getIncomingNotifications(user3,
+            onSuccess = {incoming -> user3Incoming = incoming},
+            onFailure = {throw it}
+        )
+
+        assertEquals(listOf(newNotification), user1Incoming)
+        assertEquals(listOf(newNotification), user3Incoming)
 
     }
+
+    @Test
+    fun optingOutWorks() {
+        var user3Incoming: List<Notification>? = null
+        controller.sendNotification(recipients = userList,
+            senderId = "SENDER-ID",
+            notification = newNotification,
+            onSuccess = { },
+            onFailure = {throw it })
+        controller.getIncomingNotifications(user1,
+            onSuccess = {incoming -> user3Incoming = incoming},
+            onFailure = {throw it}
+        )
+
+        assertEquals(emptyList<Notification>(), user3Incoming)
+        }
     }
+
+
+
 
