@@ -12,19 +12,11 @@ class ImageController(private val imageDB: ImageDB) {
         imageDB.getAllImages(onSuccess, onFailure)
     }
 
-    fun addImage(
-        image: UploadedImage,
-        onSuccess: (String) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        imageDB.addImage(image, onSuccess, onFailure)
-    }
-
     fun removeImage(
-        imageId: String,
+        image: UploadedImage,
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        imageDB.removeImage(imageId, onSuccess, onFailure)
+        imageDB.removeImage(image, onSuccess, onFailure)
     }
 }
