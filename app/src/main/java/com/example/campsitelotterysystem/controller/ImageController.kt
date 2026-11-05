@@ -27,12 +27,4 @@ class ImageController(private val imageDB: ImageDB) {
     ) {
         imageDB.removeImage(imageId, onSuccess, onFailure)
     }
-
-    fun removeImage(
-        image: UploadedImage,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        imageDB.removeImage(image.id, onSuccess, onFailure)
-    }
 }
