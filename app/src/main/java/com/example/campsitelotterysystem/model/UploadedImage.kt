@@ -1,0 +1,12 @@
+package com.example.campsitelotterysystem.model
+
+import java.util.Date
+
+data class UploadedImage(
+    val id: String = "",
+    val imageUrl: String = "",
+    val uploaderId: String = "",
+    val timestamp: Date = Date(),
+    val sourceId: String = "",
+    val category: String = "campsite"
+)
