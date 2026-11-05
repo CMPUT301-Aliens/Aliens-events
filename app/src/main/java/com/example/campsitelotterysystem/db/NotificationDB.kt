@@ -23,7 +23,7 @@ interface NotificationDB {
 class FirestoreNotificationDB : NotificationDB {
     private val notifications = DBConnector.db.collection("notifications")
 
-    //The following functions are adapted from Anthropic, Claude,
+    //The following 3 functions are adapted from Anthropic, Claude,
     //"assume using kotlin firestore i want to append an item to the end of document if the document already exists and create the document then append to it if it does not exist yet. how do i do so",
     //11/3/2026
 
@@ -31,18 +31,18 @@ class FirestoreNotificationDB : NotificationDB {
     override fun saveIncomingNotification(recipientId: String, notification: Notification, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)  {
 
         notifications.document(recipientId).set(mapOf("incoming" to FieldValue.arrayUnion(notification)), SetOptions.merge())
-            .addOnSuccessListener { onSuccess }
-            .addOnFailureListener { onFailure }
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
     }
     override fun saveOutgoingNotification(senderId : String, notification: Notification, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         notifications.document(senderId).set(mapOf("outgoing" to FieldValue.arrayUnion(notification)), SetOptions.merge())
-            .addOnSuccessListener { onSuccess }
-            .addOnFailureListener { onFailure }
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
     }
     override fun logNotification(notification: Notification, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         notifications.document("ALL NOTIFICATIONS").set(mapOf("log" to FieldValue.arrayUnion(notification)), SetOptions.merge())
-            .addOnSuccessListener { onSuccess }
-            .addOnFailureListener { onFailure }
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
 
     }
 
