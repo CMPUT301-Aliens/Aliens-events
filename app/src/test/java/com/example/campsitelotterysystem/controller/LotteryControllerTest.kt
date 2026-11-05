@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Date
+import org.junit.Assert.assertNull
 
 /** Unit tests for LotteryController's validation and saving, using a fake database. */
 class LotteryControllerTest {
@@ -37,6 +38,9 @@ class LotteryControllerTest {
         }
         override fun getLotteriesWithUserInWaitlist(userId: String, onSuccess: (List<Lottery>) -> Unit, onFailure: (Exception) -> Unit) {
             onSuccess(emptyList())
+        }
+        override fun getLotteryForCampsite(campsiteId: String, onSuccess: (Lottery?) -> Unit, onFailure: (Exception) -> Unit) {
+            onSuccess(added.firstOrNull { campsiteId in it.campsiteIds && it.status != "closed" })
         }
     }
 
@@ -133,6 +137,32 @@ class LotteryControllerTest {
         val errors = controller.validateLottery(validLottery.copy(bookingEndDate = Date(2500)))
         assertEquals(listOf("Booking end must be after booking start."), errors)
     }
+    @Test
+    fun getLotteryForCampsiteFindsSavedLottery() {
+        val db = FakeLotteryDB()
+        db.added.add(validLottery)
+        var found: Lottery? = null
 
+        LotteryController(db).getLotteryForCampsite(
+            "campsite-1",
+            onSuccess = { found = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals(validLottery, found)
+    }
+
+    @Test
+    fun getLotteryForCampsiteReturnsNullWhenNone(){
+        val db = FakeLotteryDB()
+        var found: Lottery? = null
+
+        LotteryController(db).getLotteryForCampsite(
+            "campsite-1",
+            onSuccess = { found = it },
+            onFailure = { throw it }
+        )
+        assertNull(found)
+    }
 
 }
