@@ -78,6 +78,23 @@ class CampsiteOwnerTest {
 
     private val controller = CampsiteController(DummyCampsiteDB())
 
+    @Test
+    fun validCampsiteHasNoErrors() {
+        assertTrue(controller.validateCampsite(validCampsite).isEmpty())
+    }
+
+    @Test
+    fun zeroMaxOccupancyIsAnError() {
+        val errors = controller.validateCampsite(validCampsite.copy(maximumOccupancy = 0))
+        assertEquals(listOf("Capacity must be greater than zero."), errors)
+    }
+
+    @Test
+    fun NegativePricePerNightIsAnError() {
+        val errors = controller.validateCampsite(validCampsite.copy(pricePerNight = -65.0))
+        assertEquals(listOf("Price per night cannot be negative."), errors)
+    }
+
 
     @Test
     fun blankNameIsAnError() {

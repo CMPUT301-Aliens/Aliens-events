@@ -1,5 +1,4 @@
-package com.example.campsitelotterysystem
-import com.example.campsitelotterysystem.model.Campsite
+package com.example.campsitelotterysystem.model
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertNull
