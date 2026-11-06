@@ -12,8 +12,8 @@ class FilterTest {
         val filter = Filter()
 
         assertEquals("", filter.location)
-        assertNull(filter.date)
-        assertNull(filter.numberOfGuests)
+        assertNull(filter.dateRange)
+        assertEquals(0, filter.numberOfGuests)
     }
 
     @Test
@@ -24,11 +24,16 @@ class FilterTest {
     }
 
     @Test
-    fun filterStoresDate() {
-        val date = Date(1791676800000L)
-        val filter = Filter(date = date)
+    fun filterStoresDateRange() {
+        val startDate = Date(1791676800000L)
+        val endDate = Date(1791763200000L)
 
-        assertEquals(date, filter.date)
+        val filter = Filter(
+            dateRange = Pair(startDate, endDate)
+        )
+
+        assertEquals(startDate, filter.dateRange?.first)
+        assertEquals(endDate, filter.dateRange?.second)
     }
 
     @Test
@@ -38,4 +43,3 @@ class FilterTest {
         assertEquals(4, filter.numberOfGuests)
     }
 }
-

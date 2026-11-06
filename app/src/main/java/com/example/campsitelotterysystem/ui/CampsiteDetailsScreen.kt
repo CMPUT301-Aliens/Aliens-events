@@ -1,4 +1,3 @@
-
 package com.example.campsitelotterysystem.ui
 
 import androidx.activity.compose.BackHandler

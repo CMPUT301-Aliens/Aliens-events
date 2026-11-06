@@ -2,10 +2,14 @@ package com.example.campsitelotterysystem.db
 
 import com.example.campsitelotterysystem.model.UploadedImage
 
+/**
+ * Purpose: Provides data access for uploaded images.
+ * Role: Reads and writes the "images" collection in Firebase Firestore.
+ * Outstanding Issues: None
+ */
 interface ImageDB {
     fun getAllImages(onSuccess: (List<UploadedImage>) -> Unit, onFailure: (Exception) -> Unit)
-    fun addImage(image: UploadedImage, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit)
-    fun removeImage(imageId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
+    fun removeImage(image: UploadedImage, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
 }
 
 class FirestoreImageDB : ImageDB {
@@ -13,25 +17,29 @@ class FirestoreImageDB : ImageDB {
 
     override fun getAllImages(onSuccess: (List<UploadedImage>) -> Unit, onFailure: (Exception) -> Unit) {
         imagesCollection.get()
-            .addOnSuccessListener { documents ->
-                onSuccess(documents.toObjects(UploadedImage::class.java))
+            .addOnSuccessListener { querySnapshot ->
+                val list = querySnapshot.documents.mapNotNull { doc ->
+                    val img = doc.toObject(UploadedImage::class.java)
+                    img?.copy(id = doc.id)
+                }
+                onSuccess(list)
             }
             .addOnFailureListener { exception ->
                 onFailure(exception)
             }
     }
 
-    override fun addImage(image: UploadedImage, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
-        val document = imagesCollection.document()
-        val newImage = image.copy(id = document.id)
-        document.set(newImage)
-            .addOnSuccessListener { onSuccess(document.id) }
-            .addOnFailureListener { onFailure(it) }
-    }
-
-    override fun removeImage(imageId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-        imagesCollection.document(imageId).delete()
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onFailure(it) }
+    override fun removeImage(image: UploadedImage, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        if (image.id.isNotBlank()) {
+            imagesCollection.document(image.id).delete()
+                .addOnSuccessListener {
+                    onSuccess()
+                }
+                .addOnFailureListener { exception ->
+                    onFailure(exception)
+                }
+        } else {
+            onSuccess()
+        }
     }
 }

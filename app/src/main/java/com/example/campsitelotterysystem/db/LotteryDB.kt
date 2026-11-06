@@ -3,17 +3,18 @@ package com.example.campsitelotterysystem.db
 import com.example.campsitelotterysystem.model.Lottery
 
 /**
- * Purpose: Saves lotteries to Firestore.
+ * Purpose: Saves, finds, and removes lotteries in Firestore.
  * Role: LotteryController uses the LotteryDB interface, so tests can use a fake database.
  * FirestoreLotteryDB is the real version and uses DBConnector.
- * Outstanding issues: There are no read functions yet. These come with the draw (#35),
- * the waitlist (#41), and getOpenLotteryForCampsite.
+ * Outstanding issues: None
  */
 interface LotteryDB {
     fun addLottery(lottery: Lottery, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit)
     fun updateLottery(lottery: Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
     fun removeAllLotteriesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
     fun getLotteriesWithUserInWaitlist(userId: String, onSuccess: (List<Lottery>) -> Unit, onFailure: (Exception) -> Unit)
+
+    fun getLotteryForCampsite(campsiteId: String, onSuccess: (Lottery?) -> Unit, onFailure: (Exception) -> Unit)
 }
 
 class FirestoreLotteryDB : LotteryDB {
@@ -61,5 +62,11 @@ class FirestoreLotteryDB : LotteryDB {
         lotteries.whereArrayContains("waitingList", userId).get()
             .addOnSuccessListener { documents -> onSuccess(documents.toObjects(Lottery::class.java)) }
             .addOnFailureListener { onFailure(it) }
+    }
+    override fun getLotteryForCampsite(campsiteId: String, onSuccess: (Lottery?) -> Unit, onFailure: (Exception) -> Unit) {
+        lotteries.whereArrayContains("campsiteIds", campsiteId).get()
+            .addOnSuccessListener { documents -> onSuccess(documents.toObjects(Lottery::class.java).firstOrNull { it.status != "closed" }) }
+            .addOnFailureListener { onFailure(it) }
+
     }
 }
