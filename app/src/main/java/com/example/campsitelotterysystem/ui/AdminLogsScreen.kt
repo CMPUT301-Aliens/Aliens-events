@@ -20,11 +20,12 @@ import com.example.campsitelotterysystem.model.Notification
 fun AdminLogsScreen(
     controller: NotificationController = remember { NotificationController(FirestoreNotificationDB()) }
 ) {
-    var logs by remember { mutableStateOf<List<Notification>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf("") }
+    // state variables
+    var logs by remember { mutableStateOf<List<Notification>>(emptyList()) } //holds the data
+    var isLoading by remember { mutableStateOf(true) } //manages loading spinner
+    var errorMessage by remember { mutableStateOf("") } // handles failures
 
-    //
+    //get notification logs from database
     LaunchedEffect(Unit) {
         controller.getAllNotificationLogs(
             onSuccess = {
@@ -40,16 +41,18 @@ fun AdminLogsScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        // screen title
         Text("System Notification Logs", style = MaterialTheme.typography.titleLarge)
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (isLoading) {
+        if (isLoading) {  // show loading wheel
             CircularProgressIndicator()
-        } else if (errorMessage.isNotEmpty()) {
+        } else if (errorMessage.isNotEmpty()) {  // show error text
             Text(errorMessage, color = MaterialTheme.colorScheme.error)
-        } else if (logs.isEmpty()) {
+        } else if (logs.isEmpty()) { // show is-empty message
             Text("No notifications have been logged yet.")
         } else {
+            // scrollable list of notification log cards
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(logs) { log ->
                     Card(modifier = Modifier.fillMaxWidth()) {
@@ -58,6 +61,7 @@ fun AdminLogsScreen(
                             Text("Time: ${log.timestamp}")
                             Text("Recipients: ${log.recipientIds.joinToString()}")
                             Spacer(modifier = Modifier.height(4.dp))
+                            // notification message content
                             Text(log.messageContent)
                         }
                     }
