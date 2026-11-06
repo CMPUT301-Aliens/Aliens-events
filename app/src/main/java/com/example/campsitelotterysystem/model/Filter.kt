@@ -3,9 +3,14 @@ package com.example.campsitelotterysystem.model
 import java.util.Date
 
 /**
- * Purpose : Search criteria an entrant sets when filtering campsites (US 01.01.02).
- * Role : Built by the filter box on the search screen, applied by CampsiteController.filterCampsites.
- * Outstanding issues : None. Blank, null or 0 means "don't filter by this".
+ * Represents the search criteria used to filter available campsites.
+ *
+ * Users can filter campsites by location, availability date range,
+ * and minimum guest capacity.
+ *
+ * @property location Location keyword used to filter campsites.
+ * @property dateRange Start and end dates for campsite availability.
+ * @property numberOfGuests Minimum number of guests the campsite must accommodate.
  */
 data class Filter(
     val location: String = "",
