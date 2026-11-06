@@ -24,6 +24,10 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".ui.AdminDashboardActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CampsiteLotterySystem" />
+        <activity
             android:name=".ui.LotteryEditActivity"
             android:exported="false"
             android:label="@string/title_activity_lottery_edit"

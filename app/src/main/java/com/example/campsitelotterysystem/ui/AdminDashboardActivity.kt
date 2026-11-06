@@ -1,5 +1,9 @@
 package com.example.campsitelotterysystem.ui
 
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,12 +19,51 @@ import com.example.campsitelotterysystem.db.FirestoreLotteryDB
 import com.example.campsitelotterysystem.db.FirestoreUserDB
 import com.example.campsitelotterysystem.model.Campsite
 import com.example.campsitelotterysystem.model.User
+import com.example.campsitelotterysystem.ui.theme.CampsiteLotterySystemTheme
 
 /**
  * handles browsing campsites, browsing user profiles, and deleting profiles.
  * uses a tabbed layout.
  */
+class AdminDashboardActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            CampsiteLotterySystemTheme {
+                // Tracks toggle state between Admin Dashboard and System Logs
+                var currentScreen by remember { mutableStateOf("DASHBOARD") }
 
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        NavigationBar {
+                            NavigationBarItem(
+                                selected = currentScreen == "DASHBOARD",
+                                onClick = { currentScreen = "DASHBOARD" },
+                                icon = { Text("🏕️") },
+                                label = { Text("Dashboard") }
+                            )
+                            NavigationBarItem(
+                                selected = currentScreen == "LOGS",
+                                onClick = { currentScreen = "LOGS" },
+                                icon = { Text("📋") },
+                                label = { Text("Logs") }
+                            )
+                        }
+                    }
+                ) { innerPadding ->
+                    Box(modifier = Modifier.padding(innerPadding)) {
+                        when (currentScreen) {
+                            "DASHBOARD" -> AdminDashboardScreen()
+                            "LOGS" -> AdminLogsScreen()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 @Composable
 fun AdminDashboardScreen() {
     // Initialize dependencies
