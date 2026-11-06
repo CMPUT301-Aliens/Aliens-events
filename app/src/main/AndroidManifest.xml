@@ -30,6 +30,17 @@
             android:theme="@style/Theme.CampsiteLotterySystem"
             android:windowSoftInputMode="adjustResize" />
         <activity
+
+            android:name=".ui.OwnerDashboardActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CampsiteLotterySystem"
+            android:windowSoftInputMode="adjustResize"/>
+        <activity
+            android:name=".ui.CampsiteEditActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CampsiteLotterySystem"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".ui.ImageGalleryActivity"
             android:exported="true"
             android:label="Image Gallery"

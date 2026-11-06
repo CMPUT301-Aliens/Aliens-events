@@ -2,6 +2,8 @@ package com.example.campsitelotterysystem.controller
 
 import com.example.campsitelotterysystem.db.CampsiteDB
 import com.example.campsitelotterysystem.model.Campsite
+
+
 import com.example.campsitelotterysystem.model.Filter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -151,5 +153,6 @@ class CampsiteControllerTest {
             Filter(location = "Jasper", numberOfGuests = 5)
         )
         assertTrue(result.isEmpty())
+
     }
 }
