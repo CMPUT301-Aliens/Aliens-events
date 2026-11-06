@@ -26,8 +26,8 @@ import com.example.campsitelotterysystem.model.User
  *           toggle notifications (US 01.10.01) and delete the profile (US 01.08.01).
  * Role :    Loads the current device's user through UserDB and writes changes back.
  * Outstanding issues : Profile image upload is shown but disabled (not built yet).
- *                      Menu items (Explore / Search, Waitlists, Bookings, Profile) are
- *                      not linked to any screen yet.
+ *                      Menu items ( Waitlists, Bookings) are
+ *                      not linked to any screen yet(Explore / Search)
  *                      onDeleted is a hook for the caller to leave this screen.(doesn't go anywhere)
  *
  */
@@ -35,7 +35,8 @@ import com.example.campsitelotterysystem.model.User
 @Composable
 fun ProfileScreen(
     userDB: UserDB = remember { FirestoreUserDB() },
-    onDeleted: () -> Unit = {}
+    onDeleted: () -> Unit = {},
+    onOpenSearch: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val userId = remember { getCurrentUserId(context) }
@@ -86,10 +87,9 @@ fun ProfileScreen(
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false }
                         ) {
-                            // Not linked to any screen yet
                             DropdownMenuItem(
                                 text = { Text("Explore / Search") },
-                                onClick = { menuExpanded = false }
+                                onClick = { menuExpanded = false; onOpenSearch() }
                             )
                             DropdownMenuItem(
                                 text = { Text("Waitlists") },

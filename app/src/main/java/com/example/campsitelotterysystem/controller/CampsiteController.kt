@@ -1,14 +1,13 @@
-
 package com.example.campsitelotterysystem.controller
 
 import com.example.campsitelotterysystem.db.CampsiteDB
+import com.example.campsitelotterysystem.db.FirestoreCampsiteDB
 import com.example.campsitelotterysystem.model.Campsite
 import com.example.campsitelotterysystem.model.Filter
 import java.util.Calendar
 import java.util.Date
-import java.util.TimeZone
 
-class CampsiteController(private val campsiteDB: CampsiteDB) {
+class CampsiteController(private val campsiteDB: CampsiteDB = FirestoreCampsiteDB()) {
 
     fun validateCampsite(campsite: Campsite): List<String> {
         val errors = mutableListOf<String>()
@@ -119,7 +118,6 @@ class CampsiteController(private val campsiteDB: CampsiteDB) {
         campsiteDB.getAllCampsites(
             onSuccess = { campsites ->
                 val searchText = keyword.trim()
-
                 val results = campsites.filter { campsite ->
                     searchText.isBlank() ||
                             campsite.name.contains(searchText, ignoreCase = true) ||
@@ -128,67 +126,35 @@ class CampsiteController(private val campsiteDB: CampsiteDB) {
                                 tag.contains(searchText, ignoreCase = true)
                             }
                 }
-
                 onSuccess(results)
             },
             onFailure = onFailure
         )
     }
 
-    // US 01.01.02 (#21): Filter campsites
-    fun filterCampsites(
-        filter: Filter,
-        onSuccess: (List<Campsite>) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        campsiteDB.getAllCampsites(
-            onSuccess = { campsites ->
-                val results = campsites.filter { campsite ->
-
-                    val locationMatches =
-                        filter.location.isBlank() ||
-                                campsite.location.contains(
-                                    filter.location.trim(),
-                                    ignoreCase = true
-                                )
-
-                    val guestsMatch =
-                        filter.numberOfGuests == null ||
-                                campsite.maximumOccupancy >= filter.numberOfGuests
-
-                    val dateMatches =
-                        filter.date == null ||
-                                campsite.availableDates.any { availableDate ->
-                                    isSameCalendarDay(availableDate, filter.date)
-                                }
-
-                    locationMatches && guestsMatch && dateMatches
-                }
-
-                onSuccess(results)
-            },
-            onFailure = onFailure
-        )
-    }
-
-    // Compare calendar days using UTC to avoid timezone mismatches.
-    private fun isSameCalendarDay(
-        first: Date,
-        second: Date
-    ): Boolean {
-        val utcTimeZone = TimeZone.getTimeZone("UTC")
-
-        val firstCalendar = Calendar.getInstance(utcTimeZone).apply {
-            time = first
+    /**
+     * US 01.01.02 (#21): Returns the campsites that match the filter. Pure function, so it can be
+     * tested without Firebase.
+     * Location: contains the text, ignoring case. Guests: maximumOccupancy is at least the guests.
+     * Dates: at least one availableDate falls inside the range (both end days included).
+     */
+    fun filterCampsites(campsites: List<Campsite>, filter: Filter): List<Campsite> =
+        campsites.filter { c ->
+            val locationOk = filter.location.isBlank() ||
+                    c.location.contains(filter.location.trim(), ignoreCase = true)
+            val guestsOk = filter.numberOfGuests <= 0 ||
+                    c.maximumOccupancy >= filter.numberOfGuests
+            val datesOk = filter.dateRange?.let { (start, end) ->
+                val from = startOfDay(start)
+                val until = Date(startOfDay(end).time + 24L * 60 * 60 * 1000)
+                c.availableDates.any { !it.before(from) && it.before(until) }
+            } ?: true
+            locationOk && guestsOk && datesOk
         }
 
-        val secondCalendar = Calendar.getInstance(utcTimeZone).apply {
-            time = second
-        }
-
-        return firstCalendar.get(Calendar.YEAR) ==
-                secondCalendar.get(Calendar.YEAR) &&
-                firstCalendar.get(Calendar.DAY_OF_YEAR) ==
-                secondCalendar.get(Calendar.DAY_OF_YEAR)
-    }
+    private fun startOfDay(d: Date): Date = Calendar.getInstance().apply {
+        time = d
+        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+    }.time
 }
