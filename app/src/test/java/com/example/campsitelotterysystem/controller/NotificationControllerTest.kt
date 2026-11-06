@@ -75,6 +75,9 @@ class NotificationControllerTest {
         {
             onSuccess(all)
         }
+        override fun getAllNotificationLogs(onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit) {
+            onSuccess(all)
+        }
 
     }
 
