@@ -69,7 +69,7 @@ class NotificationControllerTest {
         }
 
 
-        override fun getLoggedNotifications(
+        override fun getAllNotificationLogs(
             onSuccess: (List<Notification>) -> Unit,
             onFailure: (Exception) -> Unit)
         {
@@ -261,7 +261,7 @@ class NotificationControllerTest {
             notification = newNotification2,
             onSuccess = { },
             onFailure = {throw it })
-        controller.getLoggedNotifications(
+        controller.getAllNotificationLogs(
             onSuccess = {notifLog -> log = notifLog},
             onFailure = {throw it}
         )
