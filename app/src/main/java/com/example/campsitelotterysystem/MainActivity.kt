@@ -7,7 +7,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -27,6 +29,7 @@ import com.example.campsitelotterysystem.db.FirestoreCampsiteDB
 import com.example.campsitelotterysystem.db.FirestoreUserDB
 import com.example.campsitelotterysystem.db.getCurrentUserId
 import com.example.campsitelotterysystem.model.Campsite
+import com.example.campsitelotterysystem.ui.AdminDashboardActivity
 import com.example.campsitelotterysystem.ui.CampsiteDetailsScreen
 import com.example.campsitelotterysystem.ui.CampsiteSearchScreen
 import com.example.campsitelotterysystem.ui.OwnerDashboardActivity
@@ -75,16 +78,31 @@ class MainActivity : ComponentActivity() {
                                     onCampsiteClick = { selectedCampsite = it },
                                     onOpenProfile = { screen = AppScreen.PROFILE }
                                 )
-                                ExtendedFloatingActionButton(
-                                    onClick = {
-                                        startActivity(Intent(this@MainActivity, OwnerDashboardActivity::class.java))
-                                    },
-                                    modifier= Modifier
+                                Row(
+                                    modifier = Modifier
                                         .align(Alignment.BottomEnd)
                                         .navigationBarsPadding()
-                                        .padding(16.dp)
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text("Owner Dashboard")
+                                    // Button to open Admin Dashboard Activity
+                                    ExtendedFloatingActionButton(
+                                        onClick = {
+                                            startActivity(Intent(this@MainActivity,
+                                                AdminDashboardActivity::class.java))
+                                        }
+                                    ) {
+                                        Text("Admin Dashboard")
+                                    }
+
+                                    // Button to open Owner Dashboard Activity
+                                    ExtendedFloatingActionButton(
+                                        onClick = {
+                                            startActivity(Intent(this@MainActivity, OwnerDashboardActivity::class.java))
+                                        }
+                                    ) {
+                                        Text("Owner")
+                                    }
                                 }
                             }
                         } else {
