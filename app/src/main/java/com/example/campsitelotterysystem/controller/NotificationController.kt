@@ -36,9 +36,6 @@ class NotificationController (private val notificationDB: NotificationDB){
         notificationDB.getOutgoingNotifications(senderId, onSuccess, onFailure)
     }
 
-    fun getLoggedNotifications(onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit) {
-        notificationDB.getLoggedNotifications(onSuccess, onFailure)
-    }
 
 
 
