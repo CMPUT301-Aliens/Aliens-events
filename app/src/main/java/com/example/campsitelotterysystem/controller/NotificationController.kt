@@ -24,7 +24,9 @@ class NotificationController (private val notificationDB: NotificationDB){
         notificationDB.saveOutgoingNotification(senderId, notification, onSuccess, onFailure)
         notificationDB.logNotification(notification, onSuccess, onFailure)
     }
-
+    fun getAllNotificationLogs(onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit) {
+        notificationDB.getAllNotificationLogs(onSuccess, onFailure)
+    }
 
 
 
