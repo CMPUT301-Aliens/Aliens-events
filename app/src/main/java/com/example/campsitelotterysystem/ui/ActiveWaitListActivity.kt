@@ -54,6 +54,8 @@ import okhttp3.internal.wait
 fun WaitlistRow(
     waitlist: Lottery,
     onButtonClick: (Lottery) -> Unit,
+    userId : String,
+    campsiteController: CampsiteController,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -63,12 +65,17 @@ fun WaitlistRow(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
+            var primaryCampsite : Campsite = Campsite() //
+                campsiteController.getCampsite(waitlist.campsiteIds[0],
+                onSuccess = {campsite -> primaryCampsite = campsite},
+                    onFailure = {}
+            )
 
             // Top section: image + three text lines
             Row(verticalAlignment = Alignment.Top) {
                 AsyncImage(                       // Coil; swap for Image(painterResource(...)) if local
-                    model = waitlist.imageUrl,
-                    contentDescription = null,
+                    model = primaryCampsite.promotionalImages[0],
+                    contentDescription = primaryCampsite.description,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(64.dp)
@@ -81,17 +88,17 @@ fun WaitlistRow(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = waitlist.title,
+                        text = primaryCampsite.name,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = item.subtitle,
+                        text = primaryCampsite.description,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = item.detail,
+                        text = waitlist.registrationStartDate.toString() + " - " + waitlist.registrationEndDate.toString(),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -106,25 +113,40 @@ fun WaitlistRow(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
             var statusText : String = ""
-            if (waitlist.status == "open") {statusText = "Open"}
-            else if ( ) {statusText = "Won"}
+            var buttonText : String = ""
+            if (waitlist.status == "open") {statusText = "Open"; buttonText = "Leave"}
+            else if (userId in waitlist.winners ) {statusText = "Won"; buttonText = "Book"}
             else {statusText = "Lost"}
                 Text(
                     text = "",
                     style = MaterialTheme.typography.labelLarge
                 )
+                if (buttonText != "") { //if lottery is lost there is no action to be taken
                 Button(onClick = { onButtonClick(waitlist) }) {
-                    Text(item.buttonText)
+
+                    Text(buttonText)}
                 }
             }
         }
     }
 }
 
+fun handleButtonPress(waitlist : Lottery, userId: String, campsiteController: CampsiteController, lotteryController: LotteryController) {
+    if (waitlist.status == "open") {
+        //remove user from waitlist
+
+    }
+    else {
+        //move to lottery win page
+    }
+
+}
+
 @Composable
 fun ActiveWaitListActivity(
     controller: LotteryController,
-    userId : String
+    userId : String,
+    campsiteController: CampsiteController
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
@@ -194,7 +216,7 @@ fun ActiveWaitListActivity(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(waitlists, key = { it.id }) { item ->
-            WaitlistRow(waitlist = item, onButtonClick = { /* handle click */ },
+            WaitlistRow(waitlist = item, onButtonClick = { /* handle click */ }, userId,
             )
         }
 
