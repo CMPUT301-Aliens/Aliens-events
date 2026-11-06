@@ -10,9 +10,9 @@ import org.junit.Assert.assertNull
 import com.example.campsitelotterysystem.db.UserDB
 import com.example.campsitelotterysystem.db.CampsiteDB
 import com.example.campsitelotterysystem.model.User
+import kotlin.random.Random
 
-
-/** Unit tests for LotteryController's validation and saving, using a fake database. */
+/** Unit tests for LotteryController's validation, saving, waitlist, and draw, using a fake database. */
 class LotteryControllerTest {
 
     /** A pretend database that remembers what it was asked to save. */
@@ -223,6 +223,85 @@ class LotteryControllerTest {
 
         assertEquals(1, entrants.size)
         assertEquals("ghost", entrants[0].deviceId)
+    }
+    @Test
+    fun pickWinnersNeverPicksMoreThanNumberOfWinners() {
+        val winners = controller.pickWinners(listOf("a", "b", "c", "d", "e"), 3, Random(42))
+
+        assertEquals(3, winners.size)
+    }
+    @Test
+    fun fewerEntrantsThanWinnersPicksEveryone() {
+        val winners = controller.pickWinners(listOf("a", "b"), 5, Random(42))
+
+        assertEquals(setOf("a", "b"), winners.toSet())
+    }
+
+    @Test
+    fun pickWinnersNeverPicksSameEntrantTwice() {
+        val winners = controller.pickWinners(listOf("a", "a", "b", "c"), 3, Random(42))
+
+        assertEquals(winners.size, winners.distinct().size)
+    }
+
+    @Test
+    fun winnersComeFromTheWaitingList() {
+        val waitingList = listOf("a", "b", "c", "d")
+        val winners = controller.pickWinners(waitingList, 2, Random(42))
+
+        assertTrue(winners.all { it in waitingList })
+    }
+
+    @Test
+    fun zeroWinnersPicksNobody() {
+        val winners = controller.pickWinners(listOf("a", "b", "c"), 0, Random(42))
+
+        assertTrue(winners.isEmpty())
+    }
+    @Test
+    fun drawRunsAfterRegistrationEnds() {
+        val db = FakeLotteryDB()
+        var result: Lottery? = null
+
+        LotteryController(db, FakeUserDB()).drawIfReady(
+            validLottery.copy(id = "lottery-1", waitingList = listOf("a", "b", "c")),
+            now = Date(2500),
+            onSuccess = { result = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals("drawn", result?.status)
+        assertEquals(2, result?.winners?.size)
+        assertEquals(1, db.updated.size)
+    }
+    @Test
+    fun drawDoesNotRunBeforeRegistrationEnds() {
+        val db = FakeLotteryDB()
+        var result: Lottery? = null
+
+        LotteryController(db, FakeUserDB()).drawIfReady(
+            validLottery.copy(id = "lottery-1", waitingList = listOf("a", "b", "c")),
+            now = Date(1500),
+            onSuccess = { result = it },
+            onFailure = { throw it }
+        )
+
+        assertTrue(db.updated.isEmpty())
+        assertEquals("open", result?.status)
+    }
+
+    @Test
+    fun drawDoesNotRunTwice() {
+        val db = FakeLotteryDB()
+
+        LotteryController(db, FakeUserDB()).drawIfReady(
+            validLottery.copy(id = "lottery-1", waitingList = listOf("a", "b", "c"), status = "drawn"),
+            now = Date(2500),
+            onSuccess = { },
+            onFailure = { throw it }
+        )
+
+        assertTrue(db.updated.isEmpty())
     }
 
 
