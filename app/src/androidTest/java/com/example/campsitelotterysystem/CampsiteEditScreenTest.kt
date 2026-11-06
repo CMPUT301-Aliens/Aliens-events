@@ -15,7 +15,11 @@ import junit.framework.TestCase.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-
+/**
+ * Purpose : UI tests for register , view and edit.
+ * Role : checks types and taps like a real owner from dummy data
+ * Outstanding issues : none
+ */
 
 class CampsiteEditScreenTest {
     @get:Rule
@@ -79,7 +83,7 @@ class CampsiteEditScreenTest {
 
     private val existing = Campsite(
         id = "c1",
-        ownerId= "owner-1",
+        ownerId = "owner-1",
         name = "Lakeview",
         location = "Banff",
         maximumOccupancy = 4,
@@ -128,7 +132,7 @@ class CampsiteEditScreenTest {
 
 
     @Test
-    fun editButtonUnlocksForm() {
+    fun editButtonUnlocksPrefilledForm() {
         val db = DummyCampsiteDB()
         db.savedData.add(existing)
         draw.setContent { CampsiteEditScreen(CampsiteController(db), "owner-1", "c1", onDone = {})  }
