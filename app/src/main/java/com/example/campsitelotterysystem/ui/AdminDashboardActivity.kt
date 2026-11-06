@@ -1,5 +1,6 @@
 package com.example.campsitelotterysystem.ui
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,7 +10,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.campsitelotterysystem.controller.CampsiteController
 import com.example.campsitelotterysystem.controller.LotteryController
@@ -64,8 +67,11 @@ class AdminDashboardActivity : ComponentActivity() {
         }
     }
 }
+
 @Composable
 fun AdminDashboardScreen() {
+    val context = LocalContext.current
+
     // Initialize dependencies
     val userDB = remember { FirestoreUserDB() }
     val campsiteDB = remember { FirestoreCampsiteDB() }
@@ -78,24 +84,39 @@ fun AdminDashboardScreen() {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Profiles", "Campsites")
 
-    //screen tabs for navigation
-    Column(modifier = Modifier.fillMaxSize()) {
-        SecondaryTabRow(selectedTabIndex = selectedTabIndex) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index },
-                    text = { Text(title) }
-                )
+    Box(modifier = Modifier.fillMaxSize()) {
+        //screen tabs for navigation
+        Column(modifier = Modifier.fillMaxSize()) {
+            SecondaryTabRow(selectedTabIndex = selectedTabIndex) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = { Text(title) }
+                    )
+                }
+            }
+
+            when (selectedTabIndex) {
+                0 -> AdminProfilesTab(userController)
+                1 -> AdminCampsitesTab(campsiteController)
             }
         }
 
-        when (selectedTabIndex) {
-            0 -> AdminProfilesTab(userController)
-            1 -> AdminCampsitesTab(campsiteController)
+        // Floating Action Button to open Image Gallery Activity
+        ExtendedFloatingActionButton(
+            onClick = {
+                context.startActivity(Intent(context, ImageGalleryActivity::class.java))
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Text("Image Gallery")
         }
     }
 }
+
 // ------------------------------------------------------------------------------------
 //                                    PROFILES TAB
 // ------------------------------------------------------------------------------------
