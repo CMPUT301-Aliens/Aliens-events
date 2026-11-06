@@ -28,7 +28,7 @@ fun AdminDashboardScreen() {
     val campsiteDB = remember { FirestoreCampsiteDB() }
     val lotteryDB = remember { FirestoreLotteryDB() }
     val campsiteController = remember { CampsiteController(campsiteDB) }
-    val lotteryController = remember { LotteryController(lotteryDB) }
+    val lotteryController = remember { LotteryController(lotteryDB, userDB) }
     val userController = remember { UserController(userDB, campsiteDB, lotteryDB, lotteryController, campsiteController) }
 
     //track tab state
