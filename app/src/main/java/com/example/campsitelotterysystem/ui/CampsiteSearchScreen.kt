@@ -22,6 +22,21 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Purpose : Entrant "Find Campsites" screen (US 01.01.01 search, US 01.01.02 filter,
+ *           US 01.01.03 summary list). Shows a search bar, filters (location, date range,
+ *           number of guests), a result count, and a card for each matching campsite.
+ * Role : Loads all campsites once through CampsiteController, then narrows them on the device.
+ *        Filters are applied with filterCampsites, then the search text is matched against
+ *        name, location and tags. Tapping a card hands that campsite to the caller, which
+ *        opens the details screen.
+ * Outstanding issues : Dates are typed as yyyy-MM-dd. The tents slider is shown but disabled
+ *                      and is not part of the filter. In the menu, only Profile is linked;
+ *                      Waitlists and Bookings are not built yet, and Explore / Search just
+ *                      closes the menu. Unpublished campsites are not hidden. The
+ *                      "TEMPORARY DEBUG LOG" of image URLs should be removed before release.
+ *
+ */
 @Composable
 fun CampsiteSearchScreen(
     controller: CampsiteController,

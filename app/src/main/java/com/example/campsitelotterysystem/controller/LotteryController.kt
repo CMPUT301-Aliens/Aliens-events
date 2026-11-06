@@ -2,14 +2,15 @@ package com.example.campsitelotterysystem.controller
 
 import com.example.campsitelotterysystem.db.LotteryDB
 import com.example.campsitelotterysystem.model.Lottery
+import com.example.campsitelotterysystem.db.UserDB
+import com.example.campsitelotterysystem.model.User
 
 /**
- * Purpose: Checks and saves lotteries.
- * Role: Sits between LotteryEditActivity and LotteryDB. Invalid lotteries are never saved.
- * Outstanding issues: The draw (#35), the waitlist (#41), getOpenLotteryForCampsite,
- * and removeCampsiteFromLotteries are not built yet.
+ * Purpose: Checks, saves, and finds lotteries, and gets the entrants on a waitlist.
+ * Role: Sits between the lottery screens and LotteryDB and UserDB. Invalid lotteries are never saved.
+ * Outstanding issues: The draw (#35) and removeCampsiteFromLotteries are not built yet.
  */
-class LotteryController(private val lotteryDB: LotteryDB) {
+class LotteryController(private val lotteryDB: LotteryDB, private val userDB: UserDB)  {
     /** Returns a list of problems with the lottery, or an empty list if it is valid. */
     fun validateLottery(lottery: Lottery): List<String> {
         val errors = mutableListOf<String>()
@@ -76,6 +77,39 @@ class LotteryController(private val lotteryDB: LotteryDB) {
 
 
     }
+    /** Finds the campsite's current lottery, or null if it has none. */
+    fun getLotteryForCampsite(campsiteId: String, onSuccess: (Lottery?) -> Unit, onFailure: (Exception) -> Unit)
+    {
+        lotteryDB.getLotteryForCampsite(campsiteId, onSuccess, onFailure)
+
+
+    }
+    /** Gets the users on the lottery's waitlist, in the order they joined. An entrant with no profile comes back with only their device ID. */
+    fun getWaitlistEntrants(lottery: Lottery, onSuccess: (List<User>) -> Unit, onFailure: (Exception) -> Unit) {
+        val ids = lottery.waitingList
+        if (ids.isEmpty()) {
+            onSuccess(emptyList())
+            return
+        }
+
+        val found = mutableMapOf<String, User>()
+        var processedCount = 0
+
+        ids.forEach { id ->
+            userDB.getUserById(
+                id,
+                onSuccess = { user ->
+
+                    found[id] = user ?: User(deviceId = id)
+                    processedCount++
+                    if (processedCount == ids.size) {
+                        onSuccess(ids.map { found[it]!! })}
+                },
+                onFailure = { onFailure(it) }
+            )
+        }
+    }
+
 
 
     fun removeUserFromWaitlists(userId: String, onSuccess: () -> Unit = {}, onFailure: (Exception) -> Unit = {}) {

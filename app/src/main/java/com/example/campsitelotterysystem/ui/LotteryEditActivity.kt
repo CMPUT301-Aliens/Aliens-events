@@ -42,12 +42,14 @@ import com.example.campsitelotterysystem.db.FirestoreLotteryDB
 import com.example.campsitelotterysystem.model.Lottery
 import androidx.compose.ui.platform.LocalContext
 import com.example.campsitelotterysystem.db.getCurrentUserId
-
+import androidx.compose.runtime.LaunchedEffect
+import com.example.campsitelotterysystem.db.FirestoreUserDB
+import android.content.Intent
 /**
- * Purpose: The owner's screen for creating a lottery (#15, #17, #32).
+ * Purpose: The owner's screen for creating and viewing a lottery (#15, #17, #32).
  * Role: Opened by the Manage Lottery button with EXTRA_CAMPSITE_ID. Sends the lottery to
- * LotteryController and shows the result.
- * Outstanding issues: It only creates new lotteries, and can't load or edit a saved one yet.
+ * LotteryController and shows the result. View Waitlist opens LotteryManagementActivity.
+ * Outstanding issues: A saved lottery can't be edited yet (#33 is not in this checkpoint).
  * It uses one campsite per lottery (#16 is not in this checkpoint).
  */
 class LotteryEditActivity : ComponentActivity() {
@@ -84,54 +86,85 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
     var bookingEnd by remember { mutableStateOf<Date?>(null) }
     var statusMessage by remember { mutableStateOf("") }
     var savedLottery by remember { mutableStateOf<Lottery?>(null) }
-    val lotteryController = remember { LotteryController(FirestoreLotteryDB()) }
+    var isLoading by remember { mutableStateOf(campsiteId != null) }
+    val lotteryController = remember { LotteryController(FirestoreLotteryDB(), FirestoreUserDB()) }
+    var isSaving by remember { mutableStateOf(false) }
+    LaunchedEffect(campsiteId) {
+        if (campsiteId != null) {
+            lotteryController.getLotteryForCampsite(
+                campsiteId,
+                onSuccess = { lottery ->
+                    savedLottery = lottery
+                    isLoading = false
+
+                },
+                onFailure = { error ->
+                    statusMessage = "Could not load: ${error.message}"
+                    isLoading = false
+
+                }
+            )
+        }
+    }
+
 
     val formIsFilled = numberOfWinners.isNotBlank() &&
             registrationStart != null && registrationEnd != null &&
             bookingStart != null && bookingEnd != null
 
-    Column(modifier = modifier
-        .verticalScroll(rememberScrollState())
-        .padding(16.dp)) {
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
         Text(text = "Lottery for campsite: $campsiteId")
-
-        OutlinedTextField(
-            value = numberOfWinners,
-            onValueChange = { numberOfWinners = it },
-            label = { Text("Number of winners") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-
-        )
-        DateTimeField("Registration start", registrationStart) { registrationStart = it }
-        DateTimeField("Registration end", registrationEnd) { registrationEnd = it }
-        DateTimeField("Booking start", bookingStart) { bookingStart = it }
-        DateTimeField("Booking end", bookingEnd) { bookingEnd = it }
-        Button(
-            enabled = formIsFilled,
-            onClick = {
-                val lottery = Lottery(
-                    ownerId = ownerId,
-                    campsiteIds = listOfNotNull(campsiteId),
-                    registrationStartDate = registrationStart!!,
-                    registrationEndDate = registrationEnd!!,
-                    bookingStartDate = bookingStart!!,
-                    bookingEndDate = bookingEnd!!,
-                    numberOfWinners = numberOfWinners.toIntOrNull() ?: 0
-                )
-                lotteryController.createLotteryListing(
-                    lottery,
-                    onSuccess = { id ->
-                        statusMessage = "Saved lottery: $id"
-                        savedLottery = lottery.copy(id = id)
-                    },
-                    onInvalid = { errors -> statusMessage = errors.joinToString("\n") },
-                    onFailure = { error -> statusMessage = "Could not save: ${error.message}" }
-                )
-            }
-        ) {
-            Text("Save lottery")
+        if (isLoading) {
+            Text("Loading...")
         }
+        if (!isLoading && savedLottery == null) {
 
+
+            OutlinedTextField(
+                value = numberOfWinners,
+                onValueChange = { numberOfWinners = it },
+                label = { Text("Number of winners") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+
+            )
+            DateTimeField("Registration start", registrationStart) { registrationStart = it }
+            DateTimeField("Registration end", registrationEnd) { registrationEnd = it }
+            DateTimeField("Booking start", bookingStart) { bookingStart = it }
+            DateTimeField("Booking end", bookingEnd) { bookingEnd = it }
+            Button(
+                enabled = formIsFilled  && !isSaving ,
+                onClick = {
+                    val lottery = Lottery(
+                        ownerId = ownerId,
+                        campsiteIds = listOfNotNull(campsiteId),
+                        registrationStartDate = registrationStart!!,
+                        registrationEndDate = registrationEnd!!,
+                        bookingStartDate = bookingStart!!,
+                        bookingEndDate = bookingEnd!!,
+                        numberOfWinners = numberOfWinners.toIntOrNull() ?: 0
+
+                    )
+                    isSaving = true
+                    lotteryController.createLotteryListing(
+                        lottery,
+                        onSuccess = { id ->
+                            statusMessage = "Saved lottery: $id"
+                            savedLottery = lottery.copy(id = id)
+                        },
+                        onInvalid = { errors -> statusMessage = errors.joinToString("\n")
+                            isSaving = false},
+                        onFailure = { error -> statusMessage = "Could not save: ${error.message}"
+                            isSaving = false }
+                    )
+                }
+            ) {
+                Text("Publish Lottery Listing")
+            }
+        }
         Text(text = statusMessage)
         savedLottery?.let { saved ->
             Text("Number of winners: ${saved.numberOfWinners}")
@@ -143,6 +176,14 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
                 }"
             )
             Text("Booking: ${formatDateTime(saved.bookingStartDate)} to ${formatDateTime(saved.bookingEndDate)}")
+            Button(onClick = {
+                context.startActivity(
+                    Intent(context, LotteryManagementActivity::class.java)
+                        .putExtra(LotteryManagementActivity.EXTRA_CAMPSITE_ID, campsiteId)
+                )
+            }) {
+                Text("View Waitlist")
+            }
         }
 
     }
