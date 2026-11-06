@@ -8,16 +8,10 @@ import java.util.Calendar
 import java.util.Date
 
 /**
- * Filters a list of campsites according to the supplied criteria.
- *
- * Location is matched without case sensitivity.
- * Guest capacity must meet or exceed the requested number.
- * At least one available date must fall within the selected date range.
- *
- * @param campsites List of campsites to filter.
- * @param filter Search criteria containing location, date range,
- * and minimum guest capacity.
- * @return List of campsites matching all supplied criteria.
+ * Purpose : validates campsites details , associates a campsite to its owner and asks campsiteDB to save , read campsites.
+ * Role : middlemen between the screen and campsiteDB.
+ * Design pattern : Dependency Injection the campsiteDB is passed in through the constructor (tests can use fake database).
+ * Outstanding issues : none
  */
 
 class CampsiteController(private val campsiteDB: CampsiteDB = FirestoreCampsiteDB()) {

@@ -4,26 +4,9 @@ import com.google.firebase.firestore.GeoPoint
 import java.util.Date
 
 /**
- * Represents a campsite available for users to search, browse, and reserve.
- *
- * Stores campsite information including its owner, location, capacity,
- * pricing, images, policies, tags, and available dates.
- *
- * @property id Unique identifier of the campsite.
- * @property ownerId ID of the user who owns the campsite.
- * @property name Name of the campsite.
- * @property location Physical location of the campsite.
- * @property coordinates Geographical coordinates of the campsite.
- * @property description Description of the campsite.
- * @property maximumOccupancy Maximum number of guests allowed.
- * @property pricePerNight Cost of staying one night.
- * @property averageRating Average rating given by users.
- * @property promotionalImages URLs of campsite promotional images.
- * @property rulesAndPolicy Rules and policies for the campsite.
- * @property tags Searchable tags associated with the campsite.
- * @property availableDates Dates when the campsite is available.
- * @property qrCodeData Data encoded in the campsite QR code.
- * @property published Indicates whether the campsite is published.
+ * Purpose : Data model for one campsite listed by owner.
+ * Role : Stored in the campsites Firestore collection.
+ * Outstanding issues : qrCode , ratings and available dates are yet to be implemented in final checkpoint.
  */
 
 data class Campsite(
