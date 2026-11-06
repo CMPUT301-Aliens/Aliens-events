@@ -26,13 +26,14 @@ import com.example.campsitelotterysystem.db.FirestoreUserDB
 import com.example.campsitelotterysystem.model.Lottery
 import com.example.campsitelotterysystem.model.User
 import com.example.campsitelotterysystem.ui.theme.CampsiteLotterySystemTheme
+import java.util.Date
 
 /**
- * Purpose: The owner's Waitlist & Winner Management screen (#41, and later #35).
+ * Purpose: The owner's Waitlist & Winner Management screen (#41, #35).
  * Role: Opened from the lottery details with EXTRA_CAMPSITE_ID. Loads the campsite's
- * lottery and its waitlist entrants through LotteryController.
- * Outstanding issues: The draw (#35) is not added yet. The list loads when the screen
- * opens, so reopen the screen to see new entrants.
+ * lottery, runs the draw if registration has ended, then shows the entrants and winners.
+ * Outstanding issues: The draw only runs when this screen is opened after registration
+ * ends. Winners are not notified yet. Reopen the screen to see new entrants.
  */
 class LotteryManagementActivity : ComponentActivity() {
     companion object {
@@ -78,14 +79,25 @@ fun LotteryManagementScreen(campsiteId: String?, modifier: Modifier = Modifier) 
                     message = "This campsite has no lottery yet."
                     isLoading = false
                 } else {
-                    lotteryController.getWaitlistEntrants(
+                    lotteryController.drawIfReady(
                         found,
-                        onSuccess = { users ->
-                            entrants = users
-                            isLoading = false
+                        Date(),
+                        onSuccess = { current ->
+                            lottery = current
+                            lotteryController.getWaitlistEntrants(
+                                current,
+                                onSuccess = { users ->
+                                    entrants = users
+                                    isLoading = false
+                                },
+                                onFailure = { error ->
+                                    message = "Could not load the waitlist: ${error.message}"
+                                    isLoading = false
+                                }
+                            )
                         },
                         onFailure = { error ->
-                            message = "Could not load the waitlist: ${error.message}"
+                            message = "Could not run the draw: ${error.message}"
                             isLoading = false
                         }
                     )
@@ -115,6 +127,24 @@ fun LotteryManagementScreen(campsiteId: String?, modifier: Modifier = Modifier) 
         lottery?.let { current ->
             Text("Total entrants: ${current.waitingList.size}")
             Text("Winners to draw: ${current.numberOfWinners}")
+
+            if (current.status == "drawn") {
+                Text(
+                    "Winners",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+                val winners = entrants.filter { it.deviceId in current.winners }
+                if (!isLoading && winners.isEmpty()) {
+                    Text("No one joined the waitlist, so there are no winners.")
+                }
+                winners.forEach { winner ->
+                    val name = winner.name.ifBlank { "No name given" }
+                    Text("$name (ID: ${winner.deviceId})")
+                }
+            } else {
+                Text("The draw runs automatically after registration ends on ${formatDateTime(current.registrationEndDate)}.")
+            }
 
             Text(
                 "Entrant list",

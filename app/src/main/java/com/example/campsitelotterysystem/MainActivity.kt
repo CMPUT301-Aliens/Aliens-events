@@ -35,7 +35,6 @@ import com.example.campsitelotterysystem.ui.CampsiteSearchScreen
 import com.example.campsitelotterysystem.ui.OwnerDashboardActivity
 import com.example.campsitelotterysystem.ui.ProfileScreen
 import com.example.campsitelotterysystem.ui.theme.CampsiteLotterySystemTheme
-import kotlin.jvm.java
 
 /** Which screen is showing. Waitlists and Bookings are not built yet. */
 private enum class AppScreen { SEARCH, PROFILE }
