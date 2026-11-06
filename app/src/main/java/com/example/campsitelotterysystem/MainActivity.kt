@@ -1,57 +1,89 @@
+
 package com.example.campsitelotterysystem
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.campsitelotterysystem.ui.theme.CampsiteLotterySystemTheme
-import android.util.Log
+import com.example.campsitelotterysystem.controller.CampsiteController
+import com.example.campsitelotterysystem.db.FirestoreCampsiteDB
 import com.example.campsitelotterysystem.db.FirestoreUserDB
 import com.example.campsitelotterysystem.db.getCurrentUserId
+import com.example.campsitelotterysystem.model.Campsite
+import com.example.campsitelotterysystem.ui.CampsiteDetailsScreen
+import com.example.campsitelotterysystem.ui.CampsiteSearchScreen
+import com.example.campsitelotterysystem.ui.theme.CampsiteLotterySystemTheme
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Get the current device ID
         val deviceId = getCurrentUserId(this)
 
+        // Load or create the user in Firestore
         FirestoreUserDB().getOrCreateUser(
             deviceId,
-            onSuccess = { user -> Log.d("UserDB", "Loaded user: $user") },
-            onFailure = { e -> Log.e("UserDB", "Failed to load user", e) }
+            onSuccess = { user ->
+                Log.d("UserDB", "Loaded user: $user")
+            },
+            onFailure = { error ->
+                Log.e("UserDB", "Failed to load user", error)
+            }
         )
+
+        // Create the campsite controller
+        val campsiteController =
+            CampsiteController(FirestoreCampsiteDB())
+
         enableEdgeToEdge()
+
         setContent {
             CampsiteLotterySystemTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+
+                var selectedCampsite by remember {
+                    mutableStateOf<Campsite?>(null)
+                }
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    ) {
+
+                        if (selectedCampsite == null) {
+
+                            CampsiteSearchScreen(
+                                controller = campsiteController,
+                                onCampsiteClick = { campsite ->
+                                    selectedCampsite = campsite
+                                }
+                            )
+
+                        } else {
+
+                            CampsiteDetailsScreen(
+                                campsite = selectedCampsite!!,
+                                onBack = {
+                                    selectedCampsite = null
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    CampsiteLotterySystemTheme {
-        Greeting("Android")
     }
 }
