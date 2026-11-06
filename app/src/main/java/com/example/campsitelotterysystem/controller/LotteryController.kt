@@ -110,7 +110,14 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
         }
     }
 
-
+    /*returns array of lotteries with user in waitlist*/
+    fun getLotteriesWithUserInWaitlist(
+        userId: String,
+        onSuccess: (List<Lottery>) -> Unit,
+        onFailure: (Exception) -> Unit = {}
+    ) {
+        lotteryDB.getLotteriesWithUserInWaitlist(userId, onSuccess, onFailure)
+    }
 
     fun removeUserFromWaitlists(userId: String, onSuccess: () -> Unit = {}, onFailure: (Exception) -> Unit = {}) {
         lotteryDB.getLotteriesWithUserInWaitlist(userId, onSuccess = { userLotteries ->
