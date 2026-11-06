@@ -3,6 +3,7 @@ package com.example.campsitelotterysystem
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
@@ -31,17 +32,25 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // US 01.09.01: identify the user by device when the app opens
+        // Get the current device ID
         val deviceId = getCurrentUserId(this)
+
+        // Load or create the user in Firestore
         FirestoreUserDB().getOrCreateUser(
             deviceId,
-            onSuccess = { user -> Log.d("UserDB", "Loaded user: $user") },
-            onFailure = { e -> Log.e("UserDB", "Failed to load user", e) }
+            onSuccess = { user ->
+                Log.d("UserDB", "Loaded user: $user")
+            },
+            onFailure = { error ->
+                Log.e("UserDB", "Failed to load user", error)
+            }
         )
 
+        // Create the campsite controller
         val campsiteController = CampsiteController(FirestoreCampsiteDB())
 
         enableEdgeToEdge()
+
         setContent {
             CampsiteLotterySystemTheme {
                 var screen by rememberSaveable { mutableStateOf(AppScreen.SEARCH) }
@@ -66,12 +75,19 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
-                    AppScreen.PROFILE -> ProfileScreen(
-                        onOpenSearch = {
+
+                    AppScreen.PROFILE -> {
+                        BackHandler {
                             selectedCampsite = null
                             screen = AppScreen.SEARCH
                         }
-                    )
+                        ProfileScreen(
+                            onOpenSearch = {
+                                selectedCampsite = null
+                                screen = AppScreen.SEARCH
+                            }
+                        )
+                    }
                 }
             }
         }
