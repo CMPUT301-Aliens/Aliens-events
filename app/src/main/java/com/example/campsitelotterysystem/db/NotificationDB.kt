@@ -22,8 +22,6 @@ interface NotificationDB {
 
     fun getOutgoingNotifications(userId: String, onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit)
 
-    fun getLoggedNotifications(onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit)
-
     fun getAllNotificationLogs(onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit)
 }
 //The following class is adapted from Google Gemini
@@ -82,14 +80,6 @@ class FirestoreNotificationDB : NotificationDB {
             .addOnSuccessListener { snapshot ->
                 val userNotifications = snapshot.toObject(SavedNotifications::class.java)
                 onSuccess(userNotifications?.outgoing ?: emptyList())}
-            .addOnFailureListener { onFailure(it) }
-    }
-
-    override fun getLoggedNotifications(onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit) {
-        notifications.document("ALL NOTIFICATIONS").get()
-            .addOnSuccessListener { snapshot ->
-                val allNotifications = snapshot.toObject(SavedNotifications::class.java)
-                onSuccess(allNotifications?.outgoing ?: emptyList())}
             .addOnFailureListener { onFailure(it) }
     }
 
