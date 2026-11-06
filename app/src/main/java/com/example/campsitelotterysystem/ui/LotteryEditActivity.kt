@@ -43,11 +43,12 @@ import com.example.campsitelotterysystem.model.Lottery
 import androidx.compose.ui.platform.LocalContext
 import com.example.campsitelotterysystem.db.getCurrentUserId
 import androidx.compose.runtime.LaunchedEffect
-
+import com.example.campsitelotterysystem.db.FirestoreUserDB
+import android.content.Intent
 /**
  * Purpose: The owner's screen for creating and viewing a lottery (#15, #17, #32).
  * Role: Opened by the Manage Lottery button with EXTRA_CAMPSITE_ID. Sends the lottery to
- * LotteryController and shows the result.
+ * LotteryController and shows the result. View Waitlist opens LotteryManagementActivity.
  * Outstanding issues: A saved lottery can't be edited yet (#33 is not in this checkpoint).
  * It uses one campsite per lottery (#16 is not in this checkpoint).
  */
@@ -86,7 +87,7 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
     var statusMessage by remember { mutableStateOf("") }
     var savedLottery by remember { mutableStateOf<Lottery?>(null) }
     var isLoading by remember { mutableStateOf(campsiteId != null) }
-    val lotteryController = remember { LotteryController(FirestoreLotteryDB()) }
+    val lotteryController = remember { LotteryController(FirestoreLotteryDB(), FirestoreUserDB()) }
     var isSaving by remember { mutableStateOf(false) }
     LaunchedEffect(campsiteId) {
         if (campsiteId != null) {
@@ -161,7 +162,7 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
                     )
                 }
             ) {
-                Text("Save lottery")
+                Text("Publish Lottery Listing")
             }
         }
         Text(text = statusMessage)
@@ -175,6 +176,14 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
                 }"
             )
             Text("Booking: ${formatDateTime(saved.bookingStartDate)} to ${formatDateTime(saved.bookingEndDate)}")
+            Button(onClick = {
+                context.startActivity(
+                    Intent(context, LotteryManagementActivity::class.java)
+                        .putExtra(LotteryManagementActivity.EXTRA_CAMPSITE_ID, campsiteId)
+                )
+            }) {
+                Text("View Waitlist")
+            }
         }
 
     }

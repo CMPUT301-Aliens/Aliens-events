@@ -35,6 +35,12 @@
             android:label="Image Gallery"
             android:theme="@style/Theme.CampsiteLotterySystem"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.LotteryManagementActivity"
+            android:exported="false"
+            android:label="@string/title_activity_lottery_management"
+            android:theme="@style/Theme.CampsiteLotterySystem"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>
