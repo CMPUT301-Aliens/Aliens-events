@@ -118,7 +118,7 @@ fun WaitlistRow(
             else if (userId in waitlist.winners ) {statusText = "Won"; buttonText = "Book"}
             else {statusText = "Lost"}
                 Text(
-                    text = "",
+                    text = statusText,
                     style = MaterialTheme.typography.labelLarge
                 )
                 if (buttonText != "") { //if lottery is lost there is no action to be taken
@@ -133,11 +133,12 @@ fun WaitlistRow(
 
 fun handleButtonPress(waitlist : Lottery, userId: String, campsiteController: CampsiteController, lotteryController: LotteryController) {
     if (waitlist.status == "open") {
-        //remove user from waitlist
-
+        lotteryController.removeUserFromSingleWaitlist(userId, waitlist, {}, onFailure ={ "Couldn't remove you from waitlist. Please try again."})
+        //banner
     }
     else {
-        //move to lottery win page
+        //The screen this should lead to is presumably not implemented yet.
+        ""
     }
 
 }
@@ -196,7 +197,7 @@ fun ActiveWaitListActivity(
                                 onClick = { menuExpanded = false })
                             DropdownMenuItem(
                                 text = { Text("Profile") },
-                                onClick = { menuExpanded = false; onOpenProfile() }
+                                onClick = { menuExpanded = false;}
                             )
                         }
                     }
@@ -216,8 +217,7 @@ fun ActiveWaitListActivity(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(waitlists, key = { it.id }) { item ->
-            WaitlistRow(waitlist = item, onButtonClick = { /* handle click */ }, userId,
-            )
+            WaitlistRow(waitlist = item, onButtonClick = { handleButtonPress(item, userId, campsiteController, lotteryController = ) }, userId, campsiteController, )
         }
 
     }
