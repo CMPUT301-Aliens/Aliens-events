@@ -27,6 +27,11 @@ class CampsiteController (private val campsiteDB: CampsiteDB){
             errors.add("Price per night cannot be negative.")
         }
 
+        if (campsite.tags.isEmpty()) {
+            errors.add("At least one tag required.")
+        }
+
+
         val point = campsite.coordinates
         if (point != null) {
             if (point.latitude !in -90.0..90.0 || point.longitude !in -180.0..180.0) {
@@ -49,7 +54,7 @@ class CampsiteController (private val campsiteDB: CampsiteDB){
             return
         }
 
-        val newCampsite = campsite.copy(ownerId = "OwnerID", published = true)
+        val newCampsite = campsite.copy(ownerId = ownerId, published = true)
 
         campsiteDB.addCampsite(newCampsite, onSuccess, onFailure)
     }
