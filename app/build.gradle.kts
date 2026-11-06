@@ -55,4 +55,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.firestore)
+    implementation("io.coil-kt:coil-compose:2.7.0")
 }
