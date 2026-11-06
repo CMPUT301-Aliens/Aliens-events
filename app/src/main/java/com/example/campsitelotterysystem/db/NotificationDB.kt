@@ -18,35 +18,79 @@ interface NotificationDB {
     fun saveOutgoingNotification(senderId: String, notification: Notification, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
     fun logNotification(notification: Notification, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
 
+    fun getIncomingNotifications(userId: String, onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit)
+
+    fun getOutgoingNotifications(userId: String, onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit)
+
+    fun getLoggedNotifications(onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit)
+
 }
 
 class FirestoreNotificationDB : NotificationDB {
     private val notifications = DBConnector.db.collection("notifications")
 
-    //The following functions are adapted from Anthropic, Claude,
+    //The following 3 functions are adapted from Anthropic, Claude,
     //"assume using kotlin firestore i want to append an item to the end of document if the document already exists and create the document then append to it if it does not exist yet. how do i do so",
     //11/3/2026
 
 
     override fun saveIncomingNotification(recipientId: String, notification: Notification, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)  {
-
         notifications.document(recipientId).set(mapOf("incoming" to FieldValue.arrayUnion(notification)), SetOptions.merge())
-            .addOnSuccessListener { onSuccess }
-            .addOnFailureListener { onFailure }
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
     }
     override fun saveOutgoingNotification(senderId : String, notification: Notification, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         notifications.document(senderId).set(mapOf("outgoing" to FieldValue.arrayUnion(notification)), SetOptions.merge())
-            .addOnSuccessListener { onSuccess }
-            .addOnFailureListener { onFailure }
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
     }
     override fun logNotification(notification: Notification, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         notifications.document("ALL NOTIFICATIONS").set(mapOf("log" to FieldValue.arrayUnion(notification)), SetOptions.merge())
-            .addOnSuccessListener { onSuccess }
-            .addOnFailureListener { onFailure }
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
 
     }
 
-}
+    //Following 3 functions, as well as data class are adapted from Anthropic, Claude,
+    //"```
+    //.addOnSuccessListener { usersNotifications -> onSuccess(usersNotifications.toObject(mapOf<String, List<Notification>>))
+    //```
+    //Trying to return the value of this mapOf for specific key string."
+    //11/4/2026
+
+    data class SavedNotifications(
+        val incoming: List<Notification> = emptyList(),
+        val outgoing: List<Notification> = emptyList(),
+        val log: List<Notification> = emptyList()
+    )
+
+    override fun getIncomingNotifications(userId: String, onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit) {
+        notifications.document(userId).get()
+            .addOnSuccessListener { snapshot ->
+                val userNotifications = snapshot.toObject(SavedNotifications::class.java)
+                onSuccess(userNotifications?.incoming ?: emptyList())}
+            .addOnFailureListener { onFailure(it) }
+            }
+
+    override fun getOutgoingNotifications(userId: String, onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit) {
+        notifications.document(userId).get()
+            .addOnSuccessListener { snapshot ->
+                val userNotifications = snapshot.toObject(SavedNotifications::class.java)
+                onSuccess(userNotifications?.outgoing ?: emptyList())}
+            .addOnFailureListener { onFailure(it) }
+    }
+
+    override fun getLoggedNotifications(onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit) {
+        notifications.document("ALL NOTIFICATIONS").get()
+            .addOnSuccessListener { snapshot ->
+                val allNotifications = snapshot.toObject(SavedNotifications::class.java)
+                onSuccess(allNotifications?.outgoing ?: emptyList())}
+            .addOnFailureListener { onFailure(it) }
+    }
+
+    }
+
+
 
 
 
