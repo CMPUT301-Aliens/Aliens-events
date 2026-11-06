@@ -24,7 +24,12 @@ interface NotificationDB {
 
     fun getLoggedNotifications(onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit)
 
+    fun getAllNotificationLogs(onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit)
 }
+//The following class is adapted from Google Gemini
+//"how do i convert the database date into a list if the items are grouped in a field in a single document?"
+//11/5/2026
+data class NotificationLogWrapper(val log: List<Notification> = emptyList())
 
 class FirestoreNotificationDB : NotificationDB {
     private val notifications = DBConnector.db.collection("notifications")
@@ -88,7 +93,19 @@ class FirestoreNotificationDB : NotificationDB {
             .addOnFailureListener { onFailure(it) }
     }
 
+    //The following function is adapted from Google Gemini
+    //"how do i convert the database date into a list if the items are grouped in a field in a single document?"
+    //11/5/2026
+    override fun getAllNotificationLogs(onSuccess: (List<Notification>) -> Unit, onFailure: (Exception) -> Unit) {
+        notifications.document("ALL NOTIFICATIONS").get()
+            .addOnSuccessListener { document ->
+                val wrapper = document.toObject(NotificationLogWrapper::class.java)
+                onSuccess(wrapper?.log ?: emptyList())
+            }
+            .addOnFailureListener { onFailure(it) }
     }
+
+}
 
 
 
