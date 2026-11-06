@@ -6,7 +6,7 @@ import com.example.campsitelotterysystem.model.Lottery
  * Purpose: Saves, finds, and removes lotteries in Firestore.
  * Role: LotteryController uses the LotteryDB interface, so tests can use a fake database.
  * FirestoreLotteryDB is the real version and uses DBConnector.
- * Outstanding issues: The draw (#35) and the waitlist (#41) may need more functions.
+ * Outstanding issues: The draw (#35) may need more functions.
  */
 interface LotteryDB {
     fun addLottery(lottery: Lottery, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit)
