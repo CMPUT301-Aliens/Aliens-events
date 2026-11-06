@@ -19,12 +19,22 @@ class CampsiteControllerTest {
 
     /** A pretend database. filterCampsites never calls it, but the controller needs one. */
     private class FakeCampsiteDB : CampsiteDB {
+        var returnedCampsites = listOf<Campsite>()
+        val removedCampsites = mutableListOf<Campsite>()
+
+        override fun getAllCampsites(onSuccess: (List<Campsite>) -> Unit, onFailure: (Exception) -> Unit) {
+            onSuccess(returnedCampsites)
+        }
+
+        override fun removeCampsite(campsite: Campsite, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+            removedCampsites.add(campsite)
+            onSuccess(campsite.id)
+        }
+
         override fun addCampsite(campsite: Campsite, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {}
-        override fun removeCampsite(campsite: Campsite, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {}
         override fun updateCampsite(campsite: Campsite, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {}
         override fun getCampsite(id: String, onSuccess: (Campsite?) -> Unit, onFailure: (Exception) -> Unit) {}
         override fun getCampsitesByOwner(ownerId: String, onSuccess: (List<Campsite>) -> Unit, onFailure: (Exception) -> Unit) {}
-        override fun getAllCampsites(onSuccess: (List<Campsite>) -> Unit, onFailure: (Exception) -> Unit) {}
         override fun removeAllCampsitesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {}
     }
 
@@ -57,6 +67,45 @@ class CampsiteControllerTest {
     private val all = listOf(banff, jasper, noDates)
 
     private fun names(result: List<Campsite>) = result.map { it.name }
+
+    @Test
+    fun getAllCampsitesReturnsList() {
+        val fakeDb = FakeCampsiteDB()
+        val campsiteController = CampsiteController(fakeDb)
+
+        val expectedList = listOf(
+            Campsite(id = "camp1", name = "Banff Spot"),
+            Campsite(id = "camp2", name = "Jasper Spot")
+        )
+        fakeDb.returnedCampsites = expectedList
+
+        var actualList: List<Campsite>? = null
+        campsiteController.getAllCampsites(
+            onSuccess = { campsites -> actualList = campsites },
+            onFailure = { throw it }
+        )
+
+        assertEquals(expectedList, actualList)
+        assertEquals(2, actualList?.size)
+    }
+
+    @Test
+    fun removeCampsiteCallsDatabase() {
+        val fakeDb = FakeCampsiteDB()
+        val campsiteController = CampsiteController(fakeDb)
+        val campsite = Campsite(id = "camp-101", name = "Test Camp")
+
+        var removedId = ""
+        campsiteController.removeCampsite(
+            campsite = campsite,
+            onSuccess = { id -> removedId = id },
+            onFailure = { throw it }
+        )
+
+        assertEquals("camp-101", removedId)
+        assertEquals(1, fakeDb.removedCampsites.size)
+        assertEquals("camp-101", fakeDb.removedCampsites[0].id)
+    }
 
     @Test
     fun emptyFilterReturnsEveryCampsite() {
@@ -153,6 +202,5 @@ class CampsiteControllerTest {
             Filter(location = "Jasper", numberOfGuests = 5)
         )
         assertTrue(result.isEmpty())
-
     }
 }
