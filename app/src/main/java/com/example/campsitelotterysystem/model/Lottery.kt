@@ -5,8 +5,7 @@ import java.util.Date
  * Role: Stored in the "lotteries" Firestore collection. Created by LotteryController
  * and read by entrants who join the waiting list.
  * Outstanding issues: waitlistCapacity is not used yet (#34 is not in this checkpoint).
- * status only changes from "open" once the draw (#35) is built.
- *
+ * status changes from "open" to "drawn" when the draw (#35) runs.
  * @property id Firestore document ID
  * @property ownerId device ID of the owner who created the lottery
  * @property campsiteIds IDs of the campsites in this lottery
@@ -45,5 +44,16 @@ data class Lottery(
         return status == "open" &&
                 !now.before(registrationStartDate) &&
                 !now.after(registrationEndDate)
+    }
+
+    /**
+     * Checks whether the draw should run now.
+     *
+     * @param now the current time
+     * @return true if the lottery has not been drawn yet and registration has ended
+     */
+    fun isReadyToDraw(now: Date): Boolean {
+        return status == "open" &&
+                now.after(registrationEndDate)
     }
 }

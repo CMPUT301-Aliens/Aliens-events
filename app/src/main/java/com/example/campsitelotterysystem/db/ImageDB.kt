@@ -2,6 +2,11 @@ package com.example.campsitelotterysystem.db
 
 import com.example.campsitelotterysystem.model.UploadedImage
 
+/**
+ * Purpose: Provides data access for uploaded images.
+ * Role: Reads and writes the "images" collection in Firebase Firestore.
+ * Outstanding Issues: None
+ */
 interface ImageDB {
     fun getAllImages(onSuccess: (List<UploadedImage>) -> Unit, onFailure: (Exception) -> Unit)
     fun removeImage(image: UploadedImage, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)

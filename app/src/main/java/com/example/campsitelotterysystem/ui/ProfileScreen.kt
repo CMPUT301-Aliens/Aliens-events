@@ -1,6 +1,5 @@
 package com.example.campsitelotterysystem.ui
 
-import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -284,10 +283,14 @@ private fun ProfileCard(title: String, content: @Composable ColumnScope.() -> Un
     }
 }
 
+/**
+ This function is taken from AI - claude - 2026-11-05 - "Test cases for validateprofile"
+ */
+private val EMAIL_REGEX = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
 /** Returns an error message for invalid profile input, or null if it is valid. */
 internal fun validateProfile(name: String, email: String, phone: String): String? = when {
     name.isBlank() -> "Name is required."
-    email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() ->
+    email.isNotBlank() && !EMAIL_REGEX.matches(email.trim()) ->
         "Email is not valid."
     phone.isNotBlank() && phone.count { it.isDigit() } < 10 ->
         "Phone number needs at least 10 digits."

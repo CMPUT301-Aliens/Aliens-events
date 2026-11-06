@@ -40,6 +40,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
 
+/**
+ * Purpose: Displays a grid of all uploaded image, metadata and a delete button.
+ * Role: Compose layout for gallery
+ * Outstanding Issues: None
+ */
+
 val DeleteButtonColor = Color(0xFFEE827C)
 
 @Composable
