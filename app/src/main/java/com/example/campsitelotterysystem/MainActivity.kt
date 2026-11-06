@@ -1,16 +1,19 @@
-
 package com.example.campsitelotterysystem
 
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.example.campsitelotterysystem.controller.CampsiteController
 import com.example.campsitelotterysystem.db.FirestoreCampsiteDB
@@ -19,10 +22,13 @@ import com.example.campsitelotterysystem.db.getCurrentUserId
 import com.example.campsitelotterysystem.model.Campsite
 import com.example.campsitelotterysystem.ui.CampsiteDetailsScreen
 import com.example.campsitelotterysystem.ui.CampsiteSearchScreen
+import com.example.campsitelotterysystem.ui.ProfileScreen
 import com.example.campsitelotterysystem.ui.theme.CampsiteLotterySystemTheme
 
-class MainActivity : ComponentActivity() {
+/** Which screen is showing. Waitlists and Bookings are not built yet. */
+private enum class AppScreen { SEARCH, PROFILE }
 
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -41,46 +47,46 @@ class MainActivity : ComponentActivity() {
         )
 
         // Create the campsite controller
-        val campsiteController =
-            CampsiteController(FirestoreCampsiteDB())
+        val campsiteController = CampsiteController(FirestoreCampsiteDB())
 
         enableEdgeToEdge()
 
         setContent {
             CampsiteLotterySystemTheme {
+                var screen by rememberSaveable { mutableStateOf(AppScreen.SEARCH) }
+                // Campsite isn't saveable, so this resets to search after a rotation.
+                var selectedCampsite by remember { mutableStateOf<Campsite?>(null) }
 
-                var selectedCampsite by remember {
-                    mutableStateOf<Campsite?>(null)
-                }
-
-                Scaffold(
-                    modifier = Modifier.fillMaxSize()
-                ) { innerPadding ->
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                    ) {
-
-                        if (selectedCampsite == null) {
-
-                            CampsiteSearchScreen(
-                                controller = campsiteController,
-                                onCampsiteClick = { campsite ->
-                                    selectedCampsite = campsite
-                                }
-                            )
-
+                when (screen) {
+                    AppScreen.SEARCH -> {
+                        val campsite = selectedCampsite
+                        if (campsite == null) {
+                            Box(Modifier.fillMaxSize().statusBarsPadding()) {
+                                CampsiteSearchScreen(
+                                    controller = campsiteController,
+                                    onCampsiteClick = { selectedCampsite = it },
+                                    onOpenProfile = { screen = AppScreen.PROFILE }
+                                )
+                            }
                         } else {
-
                             CampsiteDetailsScreen(
-                                campsite = selectedCampsite!!,
-                                onBack = {
-                                    selectedCampsite = null
-                                }
+                                campsite = campsite,
+                                onBack = { selectedCampsite = null }
                             )
                         }
+                    }
+
+                    AppScreen.PROFILE -> {
+                        BackHandler {
+                            selectedCampsite = null
+                            screen = AppScreen.SEARCH
+                        }
+                        ProfileScreen(
+                            onOpenSearch = {
+                                selectedCampsite = null
+                                screen = AppScreen.SEARCH
+                            }
+                        )
                     }
                 }
             }
