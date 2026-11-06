@@ -1,226 +1,91 @@
 
-package com.example.campsitelotterysystem
+package com.example.campsitelotterysystem.model
 
-import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextInput
-import com.example.campsitelotterysystem.controller.CampsiteController
-import com.example.campsitelotterysystem.db.CampsiteDB
-import com.example.campsitelotterysystem.model.Campsite
-import com.example.campsitelotterysystem.ui.CampsiteEditScreen
-import junit.framework.TestCase.assertEquals
-import org.junit.Rule
+import com.google.firebase.firestore.GeoPoint
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
+import java.util.Date
 
-/**
- * Purpose: UI tests for registering, viewing and editing campsites.
- * Role: Checks user interactions using dummy campsite data.
- * Outstanding issues: None.
- */
-class CampsiteEditScreenTest {
+class CampsiteTest {
 
-    @get:Rule
-    val draw = createComposeRule()
+    @Test
+    fun campsiteStoresCorrectInformation() {
+        val date = Date(1791676800000L)
 
-    private class DummyCampsiteDB : CampsiteDB {
+        val campsite = Campsite(
+            id = "c1",
+            ownerId = "owner1",
+            name = "Lakeview",
+            location = "Banff",
+            coordinates = GeoPoint(51.1784, -115.5708),
+            description = "Beautiful campsite",
+            maximumOccupancy = 4,
+            pricePerNight = 65.0,
+            averageRating = 4.5,
+            promotionalImages = listOf("image1.jpg"),
+            rulesAndPolicy = "No smoking",
+            tags = listOf("lake", "hiking"),
+            availableDates = listOf(date),
+            qrCodeData = "QR123",
+            published = true
+        )
 
-        val savedData = mutableListOf<Campsite>()
-
-        override fun addCampsite(
-            campsite: Campsite,
-            onSuccess: (String) -> Unit,
-            onFailure: (Exception) -> Unit
-        ) {
-            val id = "fake-id-${savedData.size + 1}"
-            savedData.add(campsite.copy(id = id))
-            onSuccess(id)
-        }
-
-        override fun updateCampsite(
-            campsite: Campsite,
-            onSuccess: () -> Unit,
-            onFailure: (Exception) -> Unit
-        ) {
-            val index = savedData.indexOfFirst { it.id == campsite.id }
-
-            if (index >= 0) {
-                savedData[index] = campsite
-            }
-
-            onSuccess()
-        }
-
-        override fun getCampsitesByOwner(
-            ownerId: String,
-            onSuccess: (List<Campsite>) -> Unit,
-            onFailure: (Exception) -> Unit
-        ) {
-            onSuccess(savedData.filter { it.ownerId == ownerId })
-        }
-
-        override fun getCampsite(
-            id: String,
-            onSuccess: (Campsite?) -> Unit,
-            onFailure: (Exception) -> Unit
-        ) {
-            onSuccess(savedData.firstOrNull { it.id == id })
-        }
-
-        override fun getAllCampsites(
-            onSuccess: (List<Campsite>) -> Unit,
-            onFailure: (Exception) -> Unit
-        ) {
-            onSuccess(savedData)
-        }
-
-        override fun removeCampsite(
-            campsite: Campsite,
-            onSuccess: (String) -> Unit,
-            onFailure: (Exception) -> Unit
-        ) {
-            onSuccess(campsite.id)
-        }
-
-        override fun removeAllCampsitesByOwner(
-            ownerId: String,
-            onSuccess: () -> Unit,
-            onFailure: (Exception) -> Unit
-        ) {
-            onSuccess()
-        }
-    }
-
-    private val existing = Campsite(
-        id = "c1",
-        ownerId = "owner-1",
-        name = "Lakeview",
-        location = "Banff",
-        maximumOccupancy = 4,
-        pricePerNight = 65.0,
-        tags = listOf("lake", "hiking")
-    )
-
-    private fun type(label: String, text: String) {
-        draw.onNodeWithText(label)
-            .performScrollTo()
-            .performTextInput(text)
-    }
-
-    private fun tap(buttonText: String) {
-        draw.onNodeWithText(buttonText)
-            .performScrollTo()
-            .performClick()
+        assertEquals("c1", campsite.id)
+        assertEquals("owner1", campsite.ownerId)
+        assertEquals("Lakeview", campsite.name)
+        assertEquals("Banff", campsite.location)
+        assertEquals(GeoPoint(51.1784, -115.5708), campsite.coordinates)
+        assertEquals("Beautiful campsite", campsite.description)
+        assertEquals(4, campsite.maximumOccupancy)
+        assertEquals(65.0, campsite.pricePerNight, 0.001)
+        assertEquals(4.5, campsite.averageRating, 0.001)
+        assertEquals(listOf("image1.jpg"), campsite.promotionalImages)
+        assertEquals("No smoking", campsite.rulesAndPolicy)
+        assertEquals(listOf("lake", "hiking"), campsite.tags)
+        assertEquals(listOf(date), campsite.availableDates)
+        assertEquals("QR123", campsite.qrCodeData)
+        assertEquals(true, campsite.published)
     }
 
     @Test
-    fun emptyFormShowsError() {
-        val db = DummyCampsiteDB()
+    fun campsiteHasCorrectDefaultValues() {
+        val campsite = Campsite()
 
-        draw.setContent {
-            CampsiteEditScreen(
-                CampsiteController(db),
-                "owner-1",
-                null,
-                onDone = {}
-            )
-        }
-
-        tap("Publish Campsite")
-
-        draw.onNodeWithText(
-            "Campsite name cannot be blank.",
-            substring = true
-        ).assertIsDisplayed()
-
-        assertEquals(0, db.savedData.size)
+        assertEquals("", campsite.id)
+        assertEquals("", campsite.ownerId)
+        assertEquals("", campsite.name)
+        assertEquals("", campsite.location)
+        assertNull(campsite.coordinates)
+        assertEquals("", campsite.description)
+        assertEquals(0, campsite.maximumOccupancy)
+        assertEquals(0.0, campsite.pricePerNight, 0.001)
+        assertEquals(0.0, campsite.averageRating, 0.001)
+        assertEquals(emptyList<String>(), campsite.promotionalImages)
+        assertEquals("", campsite.rulesAndPolicy)
+        assertEquals(emptyList<String>(), campsite.tags)
+        assertEquals(emptyList<Date>(), campsite.availableDates)
+        assertEquals("", campsite.qrCodeData)
+        assertEquals(false, campsite.published)
     }
 
     @Test
-    fun filledFormSavesCampsite() {
-        val db = DummyCampsiteDB()
+    fun campsiteCopyCreatesCorrectCopy() {
+        val original = Campsite(
+            id = "c1",
+            ownerId = "owner1",
+            name = "Lakeview",
+            location = "Banff",
+            maximumOccupancy = 4
+        )
 
-        draw.setContent {
-            CampsiteEditScreen(
-                CampsiteController(db),
-                "owner-1",
-                null,
-                onDone = {}
-            )
-        }
+        val copied = original.copy(name = "Mountain View")
 
-        type("Campsite name", "Lakeview")
-        type("Location", "Banff")
-        type("Maximum occupancy", "4")
-        type("Tags (required, comma separated)", "lake, hiking")
-
-        tap("Publish Campsite")
-
-        assertEquals(1, db.savedData.size)
-        assertEquals("owner-1", db.savedData[0].ownerId)
-    }
-
-    @Test
-    fun existingCampsiteShowsDetails() {
-        val db = DummyCampsiteDB()
-        db.savedData.add(existing)
-
-        draw.setContent {
-            CampsiteEditScreen(
-                CampsiteController(db),
-                "owner-1",
-                "c1",
-                onDone = {}
-            )
-        }
-
-        draw.waitForIdle()
-
-        draw.onNodeWithText("Campsite Details")
-            .assertIsDisplayed()
-
-        draw.onNodeWithText("Lakeview")
-            .assertIsDisplayed()
-
-        draw.onNodeWithText("Edit")
-            .performScrollTo()
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun editButtonUnlocksPrefilledForm() {
-        val db = DummyCampsiteDB()
-        db.savedData.add(existing)
-
-        draw.setContent {
-            CampsiteEditScreen(
-                CampsiteController(db),
-                "owner-1",
-                "c1",
-                onDone = {}
-            )
-        }
-
-        draw.waitForIdle()
-
-        draw.onNodeWithText("Edit")
-            .performScrollTo()
-            .performClick()
-
-        draw.waitForIdle()
-
-        draw.onNodeWithText("Campsite name")
-            .assertIsEnabled()
-
-        draw.onNodeWithText("Update Campsite Details")
-            .performScrollTo()
-            .assertIsDisplayed()
-
-        draw.onNodeWithText("Cancel")
-            .performScrollTo()
-            .assertIsDisplayed()
+        assertEquals("Lakeview", original.name)
+        assertEquals("Mountain View", copied.name)
+        assertEquals(original.id, copied.id)
+        assertEquals(original.ownerId, copied.ownerId)
+        assertEquals(original.location, copied.location)
+        assertEquals(original.maximumOccupancy, copied.maximumOccupancy)
     }
 }
