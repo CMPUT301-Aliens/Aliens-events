@@ -105,17 +105,6 @@ class MainActivity : ComponentActivity() {
                                         Text("Owner")
                                     }
                                 }
-//                                ExtendedFloatingActionButton(
-//                                    onClick = {
-//                                        startActivity(Intent(this@MainActivity, OwnerDashboardActivity::class.java))
-//                                    },
-//                                    modifier = Modifier
-//                                        .align(Alignment.BottomEnd)
-//                                        .navigationBarsPadding()
-//                                        .padding(16.dp)
-//                                ){
-//                                    Text("Owner Dashboard")
-//                                }
                             }
                         } else {
                             CampsiteDetailsScreen(
