@@ -6,6 +6,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Date
+import org.junit.Assert.assertNull
+import com.example.campsitelotterysystem.db.UserDB
+import com.example.campsitelotterysystem.db.CampsiteDB
+import com.example.campsitelotterysystem.model.User
+
 
 /** Unit tests for LotteryController's validation and saving, using a fake database. */
 class LotteryControllerTest {
@@ -38,6 +43,23 @@ class LotteryControllerTest {
         override fun getLotteriesWithUserInWaitlist(userId: String, onSuccess: (List<Lottery>) -> Unit, onFailure: (Exception) -> Unit) {
             onSuccess(emptyList())
         }
+        override fun getLotteryForCampsite(campsiteId: String, onSuccess: (Lottery?) -> Unit, onFailure: (Exception) -> Unit) {
+            onSuccess(added.firstOrNull { campsiteId in it.campsiteIds && it.status != "closed" })
+        }
+    }
+    private class FakeUserDB : UserDB {
+        val users = mutableMapOf<String, User>()
+
+        override fun getUserById(userId: String, onSuccess: (User?) -> Unit, onFailure: (Exception) -> Unit) {
+            onSuccess(users[userId])
+        }
+
+        override fun getOrCreateUser(deviceId: String, onSuccess: (User) -> Unit, onFailure: (Exception) -> Unit) {}
+        override fun updateProfile(user: User, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {}
+        override fun setNotificationPreference(userId: String, enabled: Boolean, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {}
+        override fun deleteProfile(userId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {}
+        override fun deleteOwnerProfile(ownerId: String, campsiteDB: CampsiteDB, lotteryDB: LotteryDB, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {}
+        override fun getAllUsers(onSuccess: (List<User>) -> Unit, onFailure: (Exception) -> Unit) {}
     }
 
     private val validLottery = Lottery(
@@ -49,7 +71,7 @@ class LotteryControllerTest {
         bookingEndDate = Date(4000)
     )
 
-    private val controller = LotteryController(FakeLotteryDB())
+    private val controller = LotteryController(FakeLotteryDB(),FakeUserDB())
 
     @Test
     fun validLotteryHasNoErrors() {
@@ -79,7 +101,7 @@ class LotteryControllerTest {
         val db = FakeLotteryDB()
         var savedId = ""
 
-        LotteryController(db).createLotteryListing(
+        LotteryController(db, FakeUserDB()).createLotteryListing(
             validLottery,
             onSuccess = { id -> savedId = id },
             onInvalid = { throw AssertionError("should be valid") },
@@ -95,7 +117,7 @@ class LotteryControllerTest {
         val db = FakeLotteryDB()
         var errors = emptyList<String>()
 
-        LotteryController(db).createLotteryListing(
+        LotteryController(db, FakeUserDB()).createLotteryListing(
             validLottery.copy(numberOfWinners = 0),
             onSuccess = { throw AssertionError("should not save") },
             onInvalid = { errors = it },
@@ -111,7 +133,7 @@ class LotteryControllerTest {
         val db = FakeLotteryDB()
         var errors = emptyList<String>()
 
-        LotteryController(db).updateLotteryListing(
+        LotteryController(db, FakeUserDB()).updateLotteryListing(
             validLottery,
             onSuccess = { throw AssertionError("should not save") },
             onInvalid = { errors = it },
@@ -133,6 +155,76 @@ class LotteryControllerTest {
         val errors = controller.validateLottery(validLottery.copy(bookingEndDate = Date(2500)))
         assertEquals(listOf("Booking end must be after booking start."), errors)
     }
+    @Test
+    fun getLotteryForCampsiteFindsSavedLottery() {
+        val db = FakeLotteryDB()
+        db.added.add(validLottery)
+        var found: Lottery? = null
+
+        LotteryController(db, FakeUserDB()).getLotteryForCampsite(
+            "campsite-1",
+            onSuccess = { found = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals(validLottery, found)
+    }
+
+    @Test
+    fun getLotteryForCampsiteReturnsNullWhenNone(){
+        val db = FakeLotteryDB()
+        var found: Lottery? = null
+
+        LotteryController(db, FakeUserDB()).getLotteryForCampsite(
+            "campsite-1",
+            onSuccess = { found = it },
+            onFailure = { throw it }
+        )
+        assertNull(found)
+    }
+    @Test
+    fun waitlistEntrantsComeBackInOrderWithNames() {
+        val userDB = FakeUserDB()
+        userDB.users["user-1"] = User(deviceId = "user-1", name = "Avery")
+        userDB.users["user-2"] = User(deviceId = "user-2", name = "Maya")
+        var entrants = emptyList<User>()
+
+        LotteryController(FakeLotteryDB(), userDB).getWaitlistEntrants(
+            validLottery.copy(waitingList = listOf("user-2", "user-1")),
+            onSuccess = { entrants = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals(listOf("Maya", "Avery"), entrants.map { it.name })
+    }
+    @Test
+    fun emptyWaitlistGivesNoEntrants() {
+        val userDB = FakeUserDB()
+
+        var entrants = emptyList<User>()
+
+        LotteryController(FakeLotteryDB(), userDB).getWaitlistEntrants(
+            validLottery,
+            onSuccess = { entrants = it },
+            onFailure = { throw it }
+        )
+
+        assertTrue(entrants.isEmpty())
+    }
+    @Test
+    fun entrantWithNoProfileKeepsDeviceId() {
+        val userDB = FakeUserDB()
+        var entrants = emptyList<User>()
+        LotteryController(FakeLotteryDB(), userDB).getWaitlistEntrants(
+            validLottery.copy(waitingList = listOf("ghost")),
+            onSuccess = { entrants = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals(1, entrants.size)
+        assertEquals("ghost", entrants[0].deviceId)
+    }
+
 
 
 }
