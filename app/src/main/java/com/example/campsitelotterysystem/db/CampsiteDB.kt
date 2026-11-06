@@ -3,43 +3,70 @@ package com.example.campsitelotterysystem.db
 
 import com.example.campsitelotterysystem.model.Campsite
 
+/**
+ * Purpose : Reads and writes campsites in the "campsites" Firebase collection.
+ * Role : CampsiteController talks to CampsiteDB interface.
+ * Design pattern : Interface + implementation , for tests to be able to swap in fake database without touching Firestore.
+ * Outstanding issues : none
+ */
+
 interface CampsiteDB {
 
+    /**
+     * saves a campsite with a new Firestore ID and sends the new ID to onSuccess
+     */
     fun addCampsite(
         campsite: Campsite,
         onSuccess: (String) -> Unit,
         onFailure: (Exception) -> Unit
     )
 
+    /**
+     * Deletes a campsite and sends it's ID to onSuccess
+     */
     fun removeCampsite(
         campsite: Campsite,
         onSuccess: (String) -> Unit,
         onFailure: (Exception) -> Unit
     )
 
+    /**
+     * Overwrites and existing campsite with new values
+     */
     fun updateCampsite(
         campsite: Campsite,
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     )
 
+    /**
+     * Finds a campsite by its ID . If the campsite does not exist sends null to onSuccess
+     */
     fun getCampsite(
         id: String,
         onSuccess: (Campsite?) -> Unit,
         onFailure: (Exception) -> Unit
     )
 
+    /**
+     * Find all campsites using ownerId that belongs to an owner
+     */
     fun getCampsitesByOwner(
         ownerId: String,
         onSuccess: (List<Campsite>) -> Unit,
         onFailure: (Exception) -> Unit
     )
 
+    /**
+     * gets all campsites from all owners
+     */
     fun getAllCampsites(
         onSuccess: (List<Campsite>) -> Unit,
         onFailure: (Exception) -> Unit
     )
-
+    /**
+     * deletes all campsites that belong to an owner
+     */
     fun removeAllCampsitesByOwner(
         ownerId: String,
         onSuccess: () -> Unit,

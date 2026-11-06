@@ -32,7 +32,6 @@ import com.example.campsitelotterysystem.ui.CampsiteSearchScreen
 import com.example.campsitelotterysystem.ui.OwnerDashboardActivity
 import com.example.campsitelotterysystem.ui.ProfileScreen
 import com.example.campsitelotterysystem.ui.theme.CampsiteLotterySystemTheme
-import kotlin.jvm.java
 
 /** Which screen is showing. Waitlists and Bookings are not built yet. */
 private enum class AppScreen { SEARCH, PROFILE }
@@ -80,11 +79,11 @@ class MainActivity : ComponentActivity() {
                                     onClick = {
                                         startActivity(Intent(this@MainActivity, OwnerDashboardActivity::class.java))
                                     },
-                                    modifier = Modifier
+                                    modifier= Modifier
                                         .align(Alignment.BottomEnd)
                                         .navigationBarsPadding()
                                         .padding(16.dp)
-                                ){
+                                ) {
                                     Text("Owner Dashboard")
                                 }
                             }
