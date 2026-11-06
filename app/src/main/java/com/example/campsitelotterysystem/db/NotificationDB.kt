@@ -89,7 +89,7 @@ class FirestoreNotificationDB : NotificationDB {
         notifications.document("ALL NOTIFICATIONS").get()
             .addOnSuccessListener { snapshot ->
                 val allNotifications = snapshot.toObject(SavedNotifications::class.java)
-                onSuccess(allNotifications?.outgoing ?: emptyList())}
+                onSuccess(allNotifications?.log ?: emptyList())}
             .addOnFailureListener { onFailure(it) }
     }
 
