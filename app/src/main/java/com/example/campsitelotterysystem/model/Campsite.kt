@@ -19,6 +19,4 @@ data class Campsite(
     val availableDates: List<Date> = emptyList<Date>(),
     val qrCodeData: String = "",
     val published: Boolean = false
-) {
-    val title: Any
-}
+)
