@@ -3,6 +3,11 @@ package com.example.campsitelotterysystem.controller
 import com.example.campsitelotterysystem.db.ImageDB
 import com.example.campsitelotterysystem.model.UploadedImage
 
+/**
+ * Purpose: Handles logic for browsing and deleting uploaded images in the admin interface.
+ * Role: Acts as an intermediary between the UI (ImageGalleryScreen) and the database (ImageDB).
+ * Outstanding Issues: None
+ */
 class ImageController(private val imageDB: ImageDB) {
 
     fun fetchAllImages(
