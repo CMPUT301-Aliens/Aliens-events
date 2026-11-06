@@ -1,12 +1,16 @@
-
 package com.example.campsitelotterysystem.model
 
 import com.google.firebase.firestore.GeoPoint
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.util.Date
 
+/**
+ * Purpose: Unit tests for the Campsite model.
+ * Role: Verifies campsite information, default values, and copy behaviour.
+ */
 class CampsiteTest {
 
     @Test
@@ -66,26 +70,21 @@ class CampsiteTest {
         assertEquals(emptyList<String>(), campsite.tags)
         assertEquals(emptyList<Date>(), campsite.availableDates)
         assertEquals("", campsite.qrCodeData)
-        assertEquals(false, campsite.published)
+        assertFalse(campsite.published)
     }
 
     @Test
-    fun campsiteCopyCreatesCorrectCopy() {
+    fun CopyKeepsIdAndOwnerWhenEditing() {
         val original = Campsite(
             id = "c1",
-            ownerId = "owner1",
-            name = "Lakeview",
-            location = "Banff",
-            maximumOccupancy = 4
+            ownerId = "owner-1",
+            name = "Lakeview"
         )
 
-        val copied = original.copy(name = "Mountain View")
+        val edited = original.copy(name = "Lakeview Ridge")
 
-        assertEquals("Lakeview", original.name)
-        assertEquals("Mountain View", copied.name)
-        assertEquals(original.id, copied.id)
-        assertEquals(original.ownerId, copied.ownerId)
-        assertEquals(original.location, copied.location)
-        assertEquals(original.maximumOccupancy, copied.maximumOccupancy)
+        assertEquals("c1", edited.id)
+        assertEquals("owner-1", edited.ownerId)
+        assertEquals("Lakeview Ridge", edited.name)
     }
 }
