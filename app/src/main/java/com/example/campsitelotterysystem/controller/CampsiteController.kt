@@ -28,6 +28,11 @@ class CampsiteController(private val campsiteDB: CampsiteDB = FirestoreCampsiteD
             errors.add("Price per night cannot be negative.")
         }
 
+        if (campsite.tags.isEmpty()) {
+            errors.add("At least one tag required.")
+        }
+
+
         val point = campsite.coordinates
         if (point != null) {
             if (point.latitude !in -90.0..90.0 ||
@@ -40,12 +45,13 @@ class CampsiteController(private val campsiteDB: CampsiteDB = FirestoreCampsiteD
         return errors
     }
 
-    fun registerCampsite(
-        campsite: Campsite,
-        onSuccess: (String) -> Unit,
-        onInvalid: (List<String>) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
+
+    fun registerCampsite(campsite: Campsite,
+                         ownerId : String,
+                         onSuccess: (String) -> Unit,
+                         onInvalid : (List<String>) -> Unit,
+                         onFailure: (Exception) -> Unit){
+
         val errors = validateCampsite(campsite)
 
         if (errors.isNotEmpty()) {
@@ -53,11 +59,9 @@ class CampsiteController(private val campsiteDB: CampsiteDB = FirestoreCampsiteD
             return
         }
 
-        // TODO(#7): Replace test owner with the current user's ID.
-        val newCampsite = campsite.copy(
-            ownerId = "test-owner",
-            published = true
-        )
+
+        val newCampsite = campsite.copy(ownerId = ownerId, published = true)
+
 
         campsiteDB.addCampsite(newCampsite, onSuccess, onFailure)
     }
