@@ -126,9 +126,11 @@ fun AdminProfilesTab(userController: UserController) {
 @Composable
 fun AdminCampsitesTab(campsiteController: CampsiteController) {
     var campsites by remember { mutableStateOf<List<Campsite>>(emptyList()) }
+    // when incremented: launchedEffect re-runs & get current list after deletion
+    var refreshTrigger by remember { mutableIntStateOf(0) }
 
     // get all registered campsites
-    LaunchedEffect(Unit) {
+    LaunchedEffect(refreshTrigger) {
         campsiteController.getAllCampsites(
             onSuccess = { campsites = it },
             onFailure = { /* Handle error */ }
@@ -142,23 +144,45 @@ fun AdminCampsitesTab(campsiteController: CampsiteController) {
     ) {
         items(campsites) { campsite ->
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        campsite.name,
-                        style = MaterialTheme
-                            .typography
-                            .titleMedium
-                    )
-                    Text(
-                        campsite.location,
-                        style = MaterialTheme
-                            .typography
-                            .bodyMedium)
-                    Text(
-                        "Owner ID: ${campsite.ownerId}",
-                        style = MaterialTheme
-                            .typography
-                            .bodySmall)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement
+                        .SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            if (campsite.name.isNotBlank())
+                                campsite.name
+                            else "Unnamed Campsite",
+                            style = MaterialTheme
+                                .typography
+                                .titleMedium
+                        )
+                        Text(
+                            campsite.location,
+                            style = MaterialTheme
+                                .typography
+                                .bodyMedium
+                        )
+                        Text("Owner ID: ${campsite.ownerId}", style = MaterialTheme.typography.bodySmall)
+                    }
+                    // delete button
+                    Button(
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        onClick = {
+                            if (campsite.id.isNotBlank()) {
+                                campsiteController.removeCampsite(
+                                    campsite,
+                                    onSuccess = { refreshTrigger++ }, // Reload list automatically
+                                    onFailure = { /* Handle error */ }
+                                )
+                            }
+                        }
+                    ) {
+                        Text("Delete")
+                    }
                 }
             }
         }
