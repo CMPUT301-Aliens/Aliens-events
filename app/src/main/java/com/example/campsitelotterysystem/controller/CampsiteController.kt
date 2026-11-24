@@ -7,8 +7,18 @@ import com.example.campsitelotterysystem.model.Filter
 import java.util.Calendar
 import java.util.Date
 
+/**
+ * Purpose : validates campsites details , associates a campsite to its owner and asks campsiteDB to save , read campsites.
+ * Role : middlemen between the screen and campsiteDB.
+ * Design pattern : Dependency Injection the campsiteDB is passed in through the constructor (tests can use fake database).
+ * Outstanding issues : none
+ */
+
 class CampsiteController(private val campsiteDB: CampsiteDB = FirestoreCampsiteDB()) {
 
+    /**
+     * validates campsite details when registering a new campsite
+     */
     fun validateCampsite(campsite: Campsite): List<String> {
         val errors = mutableListOf<String>()
 
@@ -66,6 +76,9 @@ class CampsiteController(private val campsiteDB: CampsiteDB = FirestoreCampsiteD
         campsiteDB.addCampsite(newCampsite, onSuccess, onFailure)
     }
 
+    /**
+     * saves changes to an existing campsite. Keeps the same ID and owner.
+     */
     fun updateCampsite(
         campsite: Campsite,
         onSuccess: () -> Unit,
@@ -82,6 +95,9 @@ class CampsiteController(private val campsiteDB: CampsiteDB = FirestoreCampsiteD
         campsiteDB.updateCampsite(campsite, onSuccess, onFailure)
     }
 
+    /**
+     * gets one campsite by its ID and sends null to onSuccess if it does not exist..
+     */
     fun getCampsite(
         id: String,
         onSuccess: (Campsite?) -> Unit,
@@ -90,6 +106,9 @@ class CampsiteController(private val campsiteDB: CampsiteDB = FirestoreCampsiteD
         campsiteDB.getCampsite(id, onSuccess, onFailure)
     }
 
+    /**
+     * get all campsites associated with an  owner.
+     */
     fun getOwnerCampsites(
         ownerId: String,
         onSuccess: (List<Campsite>) -> Unit,
@@ -106,6 +125,9 @@ class CampsiteController(private val campsiteDB: CampsiteDB = FirestoreCampsiteD
         campsiteDB.removeCampsite(campsite, onSuccess, onFailure)
     }
 
+    /**
+     * gets all campsites for all owners.
+     */
     fun getAllCampsites(
         onSuccess: (List<Campsite>) -> Unit,
         onFailure: (Exception) -> Unit

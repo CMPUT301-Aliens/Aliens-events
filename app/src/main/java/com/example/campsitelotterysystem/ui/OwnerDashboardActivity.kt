@@ -37,6 +37,19 @@ import com.example.campsitelotterysystem.model.Campsite
 import com.example.campsitelotterysystem.ui.theme.CampsiteLotterySystemTheme
 
 
+/**
+ * Purpose :The owner's home screen , listing all of their campsites.
+ * Role : no campsiteID = Loads owner's campsites  .
+ * Outstanding issues : need to implement final checkpoint features
+ * citation : https://loveandroid.medium.com/lazycolumn-in-jetpack-compose-617aa13a1fce for cards
+ *
+ */
+
+
+
+/**
+ * shows the owner's campsites, a register button , and a manage lottery button on campsite
+ */
 class OwnerDashboardActivity : ComponentActivity() {
     private var refreshKey by mutableIntStateOf(0)
     override fun onCreate(savedInstanceState: Bundle?) {

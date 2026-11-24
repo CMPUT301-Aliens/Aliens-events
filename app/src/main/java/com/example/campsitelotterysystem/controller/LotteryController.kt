@@ -4,11 +4,12 @@ import com.example.campsitelotterysystem.db.LotteryDB
 import com.example.campsitelotterysystem.model.Lottery
 import com.example.campsitelotterysystem.db.UserDB
 import com.example.campsitelotterysystem.model.User
-
+import kotlin.random.Random
+import java.util.Date
 /**
- * Purpose: Checks, saves, and finds lotteries, and gets the entrants on a waitlist.
+ * Purpose: Checks, saves, and finds lotteries, gets the entrants on a waitlist, and draws the winners (#35).
  * Role: Sits between the lottery screens and LotteryDB and UserDB. Invalid lotteries are never saved.
- * Outstanding issues: The draw (#35) and removeCampsiteFromLotteries are not built yet.
+ * Outstanding issues: removeCampsiteFromLotteries is not built yet. There is no server, so the draw runs when a screen calls drawIfReady after registration ends.
  */
 class LotteryController(private val lotteryDB: LotteryDB, private val userDB: UserDB)  {
     /** Returns a list of problems with the lottery, or an empty list if it is valid. */
@@ -109,6 +110,33 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
             )
         }
     }
+    /**
+     * Picks up to numberOfWinners different entrants from the waiting list at random.
+     * If there are fewer entrants than winners, everyone on the list wins.
+     */
+    fun pickWinners(waitingList: List<String>, numberOfWinners: Int, random: Random = Random.Default): List<String> {
+        if (numberOfWinners <= 0) return emptyList()
+        return waitingList.distinct().shuffled(random).take(numberOfWinners)
+    }
+    /**
+     * Runs the draw (#35) if registration has ended and it hasn't run yet.
+     * Saves the winners and sets status to "drawn", then sends back the drawn lottery.
+     * If it isn't time yet, sends back the lottery unchanged.
+     */
+    fun drawIfReady(lottery: Lottery, now: Date, onSuccess: (Lottery) -> Unit, onFailure: (Exception) -> Unit) {
+        if (!lottery.isReadyToDraw(now)) {
+            onSuccess(lottery)
+            return
+        }
+        val drawn = lottery.copy(
+            winners = pickWinners(lottery.waitingList, lottery.numberOfWinners),
+            status = "drawn"
+        )
+        lotteryDB.updateLottery(drawn, onSuccess = { onSuccess(drawn) }, onFailure = onFailure)
+    }
+
+
+
 
 
 

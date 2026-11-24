@@ -16,6 +16,11 @@ import org.junit.Rule
 import org.junit.Test
 
 
+/**
+ * Purpose : UI tests for owner's campsite list.
+ * Role : that only the owner's campsites are shown
+ * Outstanding issues : none
+ */
 
 class OwnerDashboardTest {
 
@@ -78,7 +83,7 @@ class OwnerDashboardTest {
 
     private val existing = Campsite(
         id = "c1",
-        ownerId= "owner-1",
+        ownerId = "owner-1",
         name = "Lakeview",
         location = "Banff",
         maximumOccupancy = 4,
@@ -89,8 +94,8 @@ class OwnerDashboardTest {
     @Test
     fun showsOnlyMyCampsites() {
         val db = DummyCampsiteDB()
-        db.savedData.add(Campsite("c1",ownerId =  "owner-1", name = "Lakeview", location = "Banff"))
-        db.savedData.add(Campsite("c2",ownerId =  "owner-2", name = "Riverbend", location = "Canmore"))
+        db.savedData.add(Campsite("c1", ownerId =  "owner-1", name = "Lakeview", location = "Banff"))
+        db.savedData.add(Campsite("c2", ownerId =  "owner-2", name = "Riverbend", location = "Canmore"))
 
         draw.setContent { OwnerDashboardScreen(CampsiteController(db), "owner-1", 0) }
 
@@ -100,7 +105,7 @@ class OwnerDashboardTest {
     }
 
     @Test
-    fun noCampsitesShowsMessages() {
+    fun noCampsitesShowsAppropriateMessages() {
         val db = DummyCampsiteDB()
 
         draw.setContent { OwnerDashboardScreen(CampsiteController(db), "owner-1", 0) }

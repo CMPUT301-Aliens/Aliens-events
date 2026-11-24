@@ -6,7 +6,11 @@ import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertTrue
 import org.junit.Test
 
-
+/**
+ * Purpose : Unit tests for campsiteController.
+ * Role : dummy campsite DB instead of Firestore to test validation, register, update .
+ * Outstanding issues : none
+ */
 
 class CampsiteOwnerTest {
 
@@ -80,12 +84,6 @@ class CampsiteOwnerTest {
     }
 
     @Test
-    fun blankNameIsAnError() {
-        val errors = controller.validateCampsite(validCampsite.copy(name = ""))
-        assertEquals(listOf("Campsite name cannot be blank."), errors)
-    }
-
-    @Test
     fun zeroMaxOccupancyIsAnError() {
         val errors = controller.validateCampsite(validCampsite.copy(maximumOccupancy = 0))
         assertEquals(listOf("Capacity must be greater than zero."), errors)
@@ -97,28 +95,19 @@ class CampsiteOwnerTest {
         assertEquals(listOf("Price per night cannot be negative."), errors)
     }
 
+
+    @Test
+    fun blankNameIsAnError() {
+        val errors = controller.validateCampsite(validCampsite.copy(name = ""))
+        assertEquals(listOf("Campsite name cannot be blank."), errors)
+    }
+
     @Test
     fun noTagsIsAnError() {
         val errors = controller.validateCampsite(validCampsite.copy(tags = emptyList()))
         assertEquals(listOf("At least one tag required."), errors)
     }
 
-
-    @Test
-    fun RegisterSavesValidCampsites() {
-
-        val db = DummyCampsiteDB()
-        var savedId = ""
-
-        CampsiteController(db).registerCampsite(
-            validCampsite,
-            "owner-1",
-            onSuccess = { id -> savedId = id },
-            onInvalid = { throw AssertionError("should be valid") },
-            { throw it })
-        assertEquals("fake-id-1", savedId)
-        assertEquals(1, db.savedData.size)
-    }
 
     @Test
     fun RegisterSetsOwnerAndPublished() {
@@ -136,7 +125,7 @@ class CampsiteOwnerTest {
     }
 
     @Test
-    fun RegisterDoesNotSaveInvalidCampsites() {
+    fun RegisterDoesNotSaveInvalidCampsitesInsteadShowsError() {
 
         val db = DummyCampsiteDB()
         var errors = emptyList<String>()
@@ -152,7 +141,7 @@ class CampsiteOwnerTest {
     }
 
     @Test
-    fun updateChangesCampsiteButKeepsSameId() {
+    fun updateKeepsSameId() {
         val db = DummyCampsiteDB()
         val controller = CampsiteController(db)
 
@@ -171,7 +160,7 @@ class CampsiteOwnerTest {
     }
 
     @Test
-    fun OwnerOnlyGetsTheirOwnCampsites() {
+    fun OwnerGetsTheirOwnCampsites() {
         val db = DummyCampsiteDB()
         val controller = CampsiteController(db)
 

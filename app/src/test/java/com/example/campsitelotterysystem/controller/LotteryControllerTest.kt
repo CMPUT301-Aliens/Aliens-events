@@ -10,9 +10,9 @@ import org.junit.Assert.assertNull
 import com.example.campsitelotterysystem.db.UserDB
 import com.example.campsitelotterysystem.db.CampsiteDB
 import com.example.campsitelotterysystem.model.User
+import kotlin.random.Random
 
-
-/** Unit tests for LotteryController's validation and saving, using a fake database. */
+/** Unit tests for LotteryController's validation, saving, waitlist, and draw, using a fake database. */
 class LotteryControllerTest {
 
     /** A pretend database that remembers what it was asked to save. */
@@ -72,6 +72,15 @@ class LotteryControllerTest {
     )
 
     private val controller = LotteryController(FakeLotteryDB(),FakeUserDB())
+
+    // Realistic test data: entrants are identified by their Android device ID (16 hex characters).
+    private val avery = "5f2a9c81d3e04b76"
+    private val maya = "3f2b8c1e0a7d4f65"
+    private val jordan = "c81e728d9d4c2f63"
+    private val sofia = "a87ff679a2f3e71d"
+    private val liam = "e4da3b7fbbce2345"
+    private val noProfile = "b6d767d2f8ed5d21"
+    private val lotteryId = "k3XyP9qLm2RtV8wNb4Ze"
 
     @Test
     fun validLotteryHasNoErrors() {
@@ -185,12 +194,12 @@ class LotteryControllerTest {
     @Test
     fun waitlistEntrantsComeBackInOrderWithNames() {
         val userDB = FakeUserDB()
-        userDB.users["user-1"] = User(deviceId = "user-1", name = "Avery")
-        userDB.users["user-2"] = User(deviceId = "user-2", name = "Maya")
+        userDB.users[avery] = User(deviceId = avery, name = "Avery")
+        userDB.users[maya] = User(deviceId = maya, name = "Maya")
         var entrants = emptyList<User>()
 
         LotteryController(FakeLotteryDB(), userDB).getWaitlistEntrants(
-            validLottery.copy(waitingList = listOf("user-2", "user-1")),
+            validLottery.copy(waitingList = listOf(maya, avery)),
             onSuccess = { entrants = it },
             onFailure = { throw it }
         )
@@ -216,13 +225,92 @@ class LotteryControllerTest {
         val userDB = FakeUserDB()
         var entrants = emptyList<User>()
         LotteryController(FakeLotteryDB(), userDB).getWaitlistEntrants(
-            validLottery.copy(waitingList = listOf("ghost")),
+            validLottery.copy(waitingList = listOf(noProfile)),
             onSuccess = { entrants = it },
             onFailure = { throw it }
         )
 
         assertEquals(1, entrants.size)
-        assertEquals("ghost", entrants[0].deviceId)
+        assertEquals(noProfile, entrants[0].deviceId)
+    }
+    @Test
+    fun pickWinnersNeverPicksMoreThanNumberOfWinners() {
+        val winners = controller.pickWinners(listOf(avery, maya, jordan, sofia, liam), 3, Random(42))
+
+        assertEquals(3, winners.size)
+    }
+    @Test
+    fun fewerEntrantsThanWinnersPicksEveryone() {
+        val winners = controller.pickWinners(listOf(avery, maya), 5, Random(42))
+
+        assertEquals(setOf(avery, maya), winners.toSet())
+    }
+
+    @Test
+    fun pickWinnersNeverPicksSameEntrantTwice() {
+        val winners = controller.pickWinners(listOf(avery, avery, maya, jordan), 3, Random(42))
+
+        assertEquals(winners.size, winners.distinct().size)
+    }
+
+    @Test
+    fun winnersComeFromTheWaitingList() {
+        val waitingList = listOf(avery, maya, jordan, sofia)
+        val winners = controller.pickWinners(waitingList, 2, Random(42))
+
+        assertTrue(winners.all { it in waitingList })
+    }
+
+    @Test
+    fun zeroWinnersPicksNobody() {
+        val winners = controller.pickWinners(listOf(avery, maya, jordan), 0, Random(42))
+
+        assertTrue(winners.isEmpty())
+    }
+    @Test
+    fun drawRunsAfterRegistrationEnds() {
+        val db = FakeLotteryDB()
+        var result: Lottery? = null
+
+        LotteryController(db, FakeUserDB()).drawIfReady(
+            validLottery.copy(id = lotteryId, waitingList = listOf(avery, maya, jordan)),
+            now = Date(2500),
+            onSuccess = { result = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals("drawn", result?.status)
+        assertEquals(2, result?.winners?.size)
+        assertEquals(1, db.updated.size)
+    }
+    @Test
+    fun drawDoesNotRunBeforeRegistrationEnds() {
+        val db = FakeLotteryDB()
+        var result: Lottery? = null
+
+        LotteryController(db, FakeUserDB()).drawIfReady(
+            validLottery.copy(id = lotteryId, waitingList = listOf(avery, maya, jordan)),
+            now = Date(1500),
+            onSuccess = { result = it },
+            onFailure = { throw it }
+        )
+
+        assertTrue(db.updated.isEmpty())
+        assertEquals("open", result?.status)
+    }
+
+    @Test
+    fun drawDoesNotRunTwice() {
+        val db = FakeLotteryDB()
+
+        LotteryController(db, FakeUserDB()).drawIfReady(
+            validLottery.copy(id = lotteryId, waitingList = listOf(avery, maya, jordan), status = "drawn"),
+            now = Date(2500),
+            onSuccess = { },
+            onFailure = { throw it }
+        )
+
+        assertTrue(db.updated.isEmpty())
     }
 
 
