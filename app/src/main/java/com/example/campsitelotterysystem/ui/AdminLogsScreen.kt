@@ -7,66 +7,170 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.campsitelotterysystem.controller.MessageController
 import com.example.campsitelotterysystem.controller.NotificationController
+import com.example.campsitelotterysystem.db.FirestoreMessageDB
 import com.example.campsitelotterysystem.db.FirestoreNotificationDB
+import com.example.campsitelotterysystem.model.Message
 import com.example.campsitelotterysystem.model.Notification
 
 /**
- * - fetches the data from the NotificationController.
- * - displays all system notifications in a scrollable list
+ * Fetches notification and message logs from their respective controllers
+ * and displays them in a tabbed admin audit view.
  */
-
 @Composable
 fun AdminLogsScreen(
-    controller: NotificationController = remember { NotificationController(FirestoreNotificationDB()) }
+    controller: NotificationController = remember { NotificationController(FirestoreNotificationDB()) },
+    messageController: MessageController = remember { MessageController(FirestoreMessageDB()) }
 ) {
-    // state variables
-    var logs by remember { mutableStateOf<List<Notification>>(emptyList()) } //holds the data
-    var isLoading by remember { mutableStateOf(true) } //manages loading spinner
-    var errorMessage by remember { mutableStateOf("") } // handles failures
+    // Tab state: 0 = Notifications, 1 = Messages
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Notifications", "Messages")
 
-    //get notification logs from database
+    // Notification logs state
+    var notificationLogs by remember { mutableStateOf<List<Notification>>(emptyList()) }
+    var isLoadingNotifications by remember { mutableStateOf(true) }
+    var notificationError by remember { mutableStateOf("") }
+
+    // Message logs state
+    var messageLogs by remember { mutableStateOf<List<Message>>(emptyList()) }
+    var isLoadingMessages by remember { mutableStateOf(true) }
+    var messageError by remember { mutableStateOf("") }
+
+    // Optional search filter for Sender / Recipient / Reservation ID
+    var searchQuery by remember { mutableStateOf("") }
+
+
+    // -----------------------------------------------------------------------------
+    //                                fetching data
+    // -----------------------------------------------------------------------------
+
+    // get notification logs from database
     LaunchedEffect(Unit) {
         controller.getAllNotificationLogs(
             onSuccess = {
-                // Show newest logs at the top
-                logs = it.sortedByDescending { notif -> notif.timestamp }
-                isLoading = false
+                notificationLogs = it.sortedByDescending { notif -> notif.timestamp }
+                isLoadingNotifications = false
             },
             onFailure = {
-                errorMessage = it.message ?: "Failed to load notification logs."
-                isLoading = false
+                notificationError = it.message ?: "Failed to load notification logs."
+                isLoadingNotifications = false
+            }
+        )
+    }
+
+    // get message logs from database
+    LaunchedEffect(Unit) {
+        messageController.getAllMessageLogs(
+            onSuccess = {
+                messageLogs = it.sortedByDescending { msg -> msg.timestamp }
+                isLoadingMessages = false
+            },
+            onFailure = {
+                messageError = it.message ?: "Failed to load message logs."
+                isLoadingMessages = false
             }
         )
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        // screen title
-        Text("System Notification Logs", style = MaterialTheme.typography.titleLarge)
-        Spacer(modifier = Modifier.height(16.dp))
+        Text("System Audit Logs", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(12.dp))
 
-        if (isLoading) {  // show loading wheel
-            CircularProgressIndicator()
-        } else if (errorMessage.isNotEmpty()) {  // show error text
-            Text(errorMessage, color = MaterialTheme.colorScheme.error)
-        } else if (logs.isEmpty()) { // show is-empty message
-            Text("No notifications have been logged yet.")
-        } else {
-            // scrollable list of notification log cards
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(logs) { log ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text("Type: ${log.type.uppercase()}", style = MaterialTheme.typography.labelMedium)
-                            Text("Time: ${log.timestamp}")
-                            Text("Recipients: ${log.recipientIds.joinToString()}")
-                            Spacer(modifier = Modifier.height(4.dp))
-                            // notification message content
-                            Text(log.messageContent)
-                        }
-                    }
-                }
+        // tab switching logic
+        SecondaryTabRow(selectedTabIndex = selectedTabIndex) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTabIndex == index,
+                    onClick = {selectedTabIndex = index},
+                    text = {Text(title)}
+                )
             }
         }
-    }
-}
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // -------------------------------  search bar
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            label = { Text("Filter by Sender, Recipient, or Content") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+
+        // -----------------------------------------------------------------------------
+        //                                  page content
+        // -----------------------------------------------------------------------------
+
+        when (selectedTabIndex) {
+            0 -> {
+                val filteredNotifications = notificationLogs.filter { notif ->
+                    searchQuery.isBlank() ||
+                            notif.senderId.contains(searchQuery, ignoreCase = true) ||
+                            notif.recipientIds.any { it.contains(searchQuery, ignoreCase = true) } ||
+                            notif.messageContent.contains(searchQuery, ignoreCase = true) ||
+                            notif.type.contains(searchQuery, ignoreCase = true)
+                }
+                when {
+                    isLoadingNotifications -> CircularProgressIndicator()
+                    notificationError.isNotEmpty() -> Text(notificationError, color = MaterialTheme.colorScheme.error)
+                    filteredNotifications.isEmpty() -> Text("No notifications match your view.")
+                    else -> {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(filteredNotifications) { log ->
+                                Card(modifier = Modifier.fillMaxWidth()) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Text("Type: ${log.type.uppercase()}", style = MaterialTheme.typography.labelMedium)
+                                        Text("Time: ${log.timestamp}")
+                                        Text("Sender: ${log.senderId}")
+                                        Text("Recipients: ${log.recipientIds.joinToString()}")
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(log.messageContent)
+                                    }
+                                } // end card
+                            }
+                        } // end lazy column
+                    }
+                }
+            } // end 0
+
+            1 -> {
+                val filteredMessages = messageLogs.filter { msg ->
+                    searchQuery.isBlank() ||
+                            msg.senderId.contains(searchQuery, ignoreCase = true) ||
+                            msg.recipientId.contains(searchQuery, ignoreCase = true) ||
+                            msg.reservationId.contains(searchQuery, ignoreCase = true) ||
+                            msg.content.contains(searchQuery, ignoreCase = true)
+                }
+
+                when {
+                    isLoadingMessages -> CircularProgressIndicator()
+                    messageError.isNotEmpty() -> Text(messageError, color = MaterialTheme.colorScheme.error)
+                    filteredMessages.isEmpty() -> Text("No messages have been logged yet.")
+                    else -> {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(filteredMessages) { msg ->
+                                Card(modifier = Modifier.fillMaxWidth()) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Text(
+                                            "Reservation ID: ${msg.reservationId}",
+                                            style = MaterialTheme.typography.labelMedium
+                                        )
+                                        Text("Time: ${msg.timestamp}")
+                                        Text("From: ${msg.senderId}")
+                                        Text("To: ${msg.recipientId}")
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(msg.content)
+                                    }
+                                } // end card
+                            }
+                        } // end lazy column
+                    }
+                }
+            } // end 1
+        } // end when
+    } // end column
+} // end fun AdminLogsScreen()
