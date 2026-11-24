@@ -40,6 +40,8 @@ fun AdminLogsScreen(
     // Optional search filter for Sender / Recipient / Reservation ID
     var searchQuery by remember { mutableStateOf("") }
 
+    // for viewing details of a notification
+    var selectedMessage by remember { mutableStateOf<Message?>(null) }
 
     // -----------------------------------------------------------------------------
     //                                fetching data
@@ -135,7 +137,7 @@ fun AdminLogsScreen(
                         } // end lazy column
                     }
                 }
-            } // end 0
+            } // end notifications
 
             1 -> {
                 val filteredMessages = messageLogs.filter { msg ->
@@ -149,11 +151,17 @@ fun AdminLogsScreen(
                 when {
                     isLoadingMessages -> CircularProgressIndicator()
                     messageError.isNotEmpty() -> Text(messageError, color = MaterialTheme.colorScheme.error)
-                    filteredMessages.isEmpty() -> Text("No messages have been logged yet.")
+                    filteredMessages.isEmpty() -> Text(
+                        if (messageLogs.isEmpty()) "No messages have been logged yet."
+                        else "No messages match your search."
+                    )
                     else -> {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(filteredMessages) { msg ->
-                                Card(modifier = Modifier.fillMaxWidth()) {
+                                Card(
+                                    onClick = { selectedMessage = msg },
+                                    modifier = Modifier.fillMaxWidth())
+                                {
                                     Column(modifier = Modifier.padding(12.dp)) {
                                         Text(
                                             "Reservation ID: ${msg.reservationId}",
@@ -170,7 +178,30 @@ fun AdminLogsScreen(
                         } // end lazy column
                     }
                 }
-            } // end 1
+            } // end messages
         } // end when
+
+        selectedMessage?.let { msg ->
+            AlertDialog(
+                onDismissRequest = { selectedMessage = null },
+                title = { Text("Message Details") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Message ID: ${msg.id}")
+                        Text("Reservation ID: ${msg.reservationId}")
+                        Text("Sender ID: ${msg.senderId}")
+                        Text("Recipient ID: ${msg.recipientId}")
+                        Text("Date Sent: ${msg.timestamp}")
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        Text(msg.content)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { selectedMessage = null }) {
+                        Text("Close")
+                    }
+                }
+            )
+        } // end selected message popup
     } // end column
 } // end fun AdminLogsScreen()
