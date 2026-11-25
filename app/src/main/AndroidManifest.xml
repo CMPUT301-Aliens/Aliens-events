@@ -24,6 +24,11 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".ui.MessageActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CampsiteLotterySystem"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".ui.AdminDashboardActivity"
             android:exported="false"
             android:theme="@style/Theme.CampsiteLotterySystem" />
