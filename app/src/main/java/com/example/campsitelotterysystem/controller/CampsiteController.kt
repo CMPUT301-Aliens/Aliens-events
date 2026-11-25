@@ -145,12 +145,12 @@ class CampsiteController(private val campsiteDB: CampsiteDB = FirestoreCampsiteD
             onSuccess = { campsites ->
                 val searchText = keyword.trim()
                 val results = campsites.filter { campsite ->
-                    searchText.isBlank() ||
+                    campsite.published && (searchText.isBlank() ||
                             campsite.name.contains(searchText, ignoreCase = true) ||
                             campsite.location.contains(searchText, ignoreCase = true) ||
                             campsite.tags.any { tag ->
                                 tag.contains(searchText, ignoreCase = true)
-                            }
+                            })
                 }
                 onSuccess(results)
             },

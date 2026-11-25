@@ -108,7 +108,36 @@ class MainActivity : ComponentActivity() {
                         } else {
                             CampsiteDetailsScreen(
                                 campsite = campsite,
-                                onBack = { selectedCampsite = null }
+                                onBack = { selectedCampsite = null },
+                                onRateCampsite = { rating, text, onComplete, onError ->
+                                    val newCount = campsite.ratingCount + 1
+                                    val newAvg = ((campsite.averageRating * campsite.ratingCount) + rating) / newCount
+                                    val updatedCampsite = campsite.copy(
+                                        averageRating = newAvg,
+                                        ratingCount = newCount
+                                    )
+                                    val review = com.example.campsitelotterysystem.model.Review(
+                                        campsiteId = campsite.id,
+                                        rating = rating,
+                                        text = text
+                                    )
+                                    com.example.campsitelotterysystem.db.DBConnector.db.collection("reviews")
+                                        .add(review)
+                                        .addOnSuccessListener {
+                                            campsiteController.updateCampsite(
+                                                campsite = updatedCampsite,
+                                                onSuccess = {
+                                                    selectedCampsite = updatedCampsite
+                                                    onComplete()
+                                                },
+                                                onInvalid = { onError("Invalid campsite data") },
+                                                onFailure = { onError(it.message ?: "Failed to update") }
+                                            )
+                                        }
+                                        .addOnFailureListener {
+                                            onError(it.message ?: "Failed to save review")
+                                        }
+                                }
                             )
                         }
                     }

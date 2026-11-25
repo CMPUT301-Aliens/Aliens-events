@@ -19,6 +19,7 @@ data class Campsite(
     val maximumOccupancy: Int = 0,
     val pricePerNight: Double = 0.0,
     val averageRating: Double = 0.0,
+    val ratingCount: Int = 0,
     val promotionalImages: List<String> = emptyList<String>(),
     val rulesAndPolicy: String = "",
     val tags: List<String> = emptyList<String>(),
