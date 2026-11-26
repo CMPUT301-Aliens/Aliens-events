@@ -26,9 +26,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.campsitelotterysystem.controller.CampsiteController
 import com.example.campsitelotterysystem.db.FirestoreCampsiteDB
+import com.example.campsitelotterysystem.db.FirestoreLotteryDB
 import com.example.campsitelotterysystem.db.FirestoreUserDB
+import com.example.campsitelotterysystem.db.LotteryDB
 import com.example.campsitelotterysystem.db.getCurrentUserId
 import com.example.campsitelotterysystem.model.Campsite
+import com.example.campsitelotterysystem.model.Lottery
+import com.example.campsitelotterysystem.model.User
 import com.example.campsitelotterysystem.ui.AdminDashboardActivity
 import com.example.campsitelotterysystem.ui.CampsiteDetailsScreen
 import com.example.campsitelotterysystem.ui.CampsiteSearchScreen
@@ -86,16 +90,25 @@ class MainActivity : ComponentActivity() {
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
 
-                          // Temporary button to test MessageActivity — remove before final PR - adds random values for recipientID, reservationID, header
+                                    // Temporary button to test MessageActivity — remove before final PR - adds random values for recipientID, reservationID, header
                                     ExtendedFloatingActionButton(
                                         onClick = {
                                             val intent = Intent(
                                                 this@MainActivity,
                                                 com.example.campsitelotterysystem.ui.MessageActivity::class.java
                                             ).apply {
-                                                putExtra(com.example.campsitelotterysystem.ui.MessageActivity.EXTRA_RESERVATION_ID, "test-res-101")
-                                                putExtra(com.example.campsitelotterysystem.ui.MessageActivity.EXTRA_RECIPIENT_ID, "test-owner-999")
-                                                putExtra(com.example.campsitelotterysystem.ui.MessageActivity.EXTRA_HEADER_TITLE, "Pine Valley — Owner")
+                                                putExtra(
+                                                    com.example.campsitelotterysystem.ui.MessageActivity.EXTRA_RESERVATION_ID,
+                                                    "test-res-101"
+                                                )
+                                                putExtra(
+                                                    com.example.campsitelotterysystem.ui.MessageActivity.EXTRA_RECIPIENT_ID,
+                                                    "test-owner-999"
+                                                )
+                                                putExtra(
+                                                    com.example.campsitelotterysystem.ui.MessageActivity.EXTRA_HEADER_TITLE,
+                                                    "Pine Valley — Owner"
+                                                )
                                             }
                                             startActivity(intent)
                                         }
@@ -106,8 +119,12 @@ class MainActivity : ComponentActivity() {
                                     // Button to open Admin Dashboard Activity
                                     ExtendedFloatingActionButton(
                                         onClick = {
-                                            startActivity(Intent(this@MainActivity,
-                                                AdminDashboardActivity::class.java))
+                                            startActivity(
+                                                Intent(
+                                                    this@MainActivity,
+                                                    AdminDashboardActivity::class.java
+                                                )
+                                            )
                                         }
                                     ) {
                                         Text("Admin Dashboard")
@@ -116,7 +133,12 @@ class MainActivity : ComponentActivity() {
                                     // Button to open Owner Dashboard Activity
                                     ExtendedFloatingActionButton(
                                         onClick = {
-                                            startActivity(Intent(this@MainActivity, OwnerDashboardActivity::class.java))
+                                            startActivity(
+                                                Intent(
+                                                    this@MainActivity,
+                                                    OwnerDashboardActivity::class.java
+                                                )
+                                            )
                                         }
                                     ) {
                                         Text("Owner")
@@ -126,6 +148,7 @@ class MainActivity : ComponentActivity() {
                         } else {
                             CampsiteDetailsScreen(
                                 campsite = campsite,
+                                userId = deviceId,
                                 onBack = { selectedCampsite = null }
                             )
                         }

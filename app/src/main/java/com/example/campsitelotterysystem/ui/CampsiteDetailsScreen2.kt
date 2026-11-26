@@ -23,6 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.example.campsitelotterysystem.db.FirestoreLotteryDB
+import com.example.campsitelotterysystem.db.FirestoreUserDB
 import com.example.campsitelotterysystem.db.LotteryDB
 import com.example.campsitelotterysystem.model.Lottery
 import com.example.campsitelotterysystem.model.User
@@ -32,12 +34,13 @@ import java.util.concurrent.TimeUnit
 
 
 
-//cite claude
-// have kotlin date() object. how to get string representation of how many days/hours/minutes date is in future
+//The following function is adapted from Anthropic, Claude,
+//"have kotlin date() object. how to get string representation of how many days/hours/minutes date is in future",
+//11/25/2026
 fun getTimeUntilLotteryEnd(endDate: Date?) : String {
     if (endDate == null) {return "Error!"}
     val diffMs = endDate.time - System.currentTimeMillis()
-    if (diffMs <= 0) return "in the past"
+    if (diffMs <= 0) return "the past"
 
     val days = TimeUnit.MILLISECONDS.toDays(diffMs)
     val hours = TimeUnit.MILLISECONDS.toHours(diffMs) % 24
@@ -59,9 +62,9 @@ fun getTimeUntilLotteryEnd(endDate: Date?) : String {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CampsiteDetailsScreen2(
-    user : User,
+    userId : String,
     campsite: Campsite,
-    lotteryDB: LotteryDB,
+    lotteryDB: LotteryDB = remember { FirestoreLotteryDB() },
     onBack: () -> Unit
 ) {
 
@@ -118,7 +121,7 @@ fun CampsiteDetailsScreen2(
                 )
                 if (errorMessage == "") {
                     lotteryDB.getLotteriesWithUserInWaitlist(
-                        userId = user.deviceId,
+                        userId = userId,
                         onSuccess = {usersLotteries -> isEnrolled = (lottery in usersLotteries)},
                         onFailure = { buttonError = true})}
 
@@ -128,8 +131,17 @@ fun CampsiteDetailsScreen2(
 
 
             if (lottery == null) {
-                Text(errorMessage)
+                if (errorMessage != "") {
+                Text("Error: " + errorMessage)}
+                else {
+                    Text("This campsite does not currently have an open lottery.")
+                }
             }
+            else if (getTimeUntilLotteryEnd(lottery?.registrationEndDate) == "the past") {
+                Text("The most recent lottery for this campsite has closed.")
+            }
+
+
             else {
 
                 bannerText?.let {
@@ -145,7 +157,7 @@ fun CampsiteDetailsScreen2(
                 //display info
 
                 Text("Lottery Information:")
-                Text("Registration period - ${getTimeUntilLotteryEnd(lottery?.registrationEndDate)}")
+                Text("Registration period ends in - ${getTimeUntilLotteryEnd(lottery?.registrationEndDate)}")
                 Text("Current Waitlist -  ${lottery?.waitingList?.size ?: "Error!"}")
 
 
@@ -161,8 +173,8 @@ fun CampsiteDetailsScreen2(
                     Button(onClick = {
                         //attempt to join lottery
                         var joinedLottery : Lottery
-                        if (user.deviceId !in lottery!!.waitingList) {
-                            joinedLottery = lottery!!.copy(waitingList = lottery!!.waitingList + user.deviceId)
+                        if (userId !in lottery!!.waitingList) {
+                            joinedLottery = lottery!!.copy(waitingList = lottery!!.waitingList + userId)
                         }
                         else { //if user is somehow already enrolled, it is easiest to proceed as if they were enrolling, but ensure that they aren't listed twice
                             joinedLottery = lottery!!.copy()}
@@ -170,10 +182,12 @@ fun CampsiteDetailsScreen2(
                             isEnrolled = true
                             lottery = joinedLottery
                             //display banner
+                            updateBanner("Successfully enrolled!", true)
 
                         },{
                             buttonError = true
-                            //error banner or smth
+                            //error banner
+                            updateBanner("Enrolment failed.", false)
                         })
 
                     }) {
@@ -187,8 +201,8 @@ fun CampsiteDetailsScreen2(
                     Button(onClick = {
                         //attempt to leave lottery
                         var leftLottery : Lottery
-                        if (user.deviceId !in lottery!!.waitingList) {
-                            leftLottery = lottery!!.copy(waitingList = lottery!!.waitingList + user.deviceId)
+                        if (userId !in lottery!!.waitingList) {
+                            leftLottery = lottery!!.copy(waitingList = lottery!!.waitingList + userId)
                         }
                         else {
                             leftLottery = lottery!!.copy()}
@@ -196,10 +210,12 @@ fun CampsiteDetailsScreen2(
                             isEnrolled = false
                             lottery = leftLottery
                             //display banner
+                            updateBanner("Successfully unenrolled!", true)
 
                         },{
                             buttonError = true
                             //error banner or smth
+                            updateBanner("Unenrolment failed.", false)
                         })
 
 
@@ -208,7 +224,7 @@ fun CampsiteDetailsScreen2(
                         Text("Leave Lottery")
                     }}
                 if (buttonError) {
-                    Text("Sorry, an error occurred regarding your registration status. Please try again.")
+                    Text("Sorry, an error occurred regarding your registration status. Please return to the prior page and again.")
                 }
 
 
