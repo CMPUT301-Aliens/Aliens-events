@@ -171,22 +171,4 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
         })
     }
 
-    //minimally edited version of above function bc i do not have the time to care
-    fun removeUserFromSingleWaitlist(userId: String, lottery : Lottery, onSuccess: () -> Unit = {}, onFailure: (Exception) -> Unit = {}) {
-        val userLotteries : List<Lottery> = listOf(lottery)
-            userLotteries.forEach { lottery ->
-                // Create a new list without the deleted user's ID
-                val updatedWaitlist = lottery.waitingList.filter { it != userId }
-                val updatedLottery = lottery.copy(waitingList = updatedWaitlist)
-                // Save the updated lottery back to Datbase
-                lotteryDB.updateLottery(updatedLottery, onSuccess = {
-
-                    onSuccess()
-                }, onFailure = {
-                    onFailure(it)
-                })
-
-
-            }
-    }
 }
