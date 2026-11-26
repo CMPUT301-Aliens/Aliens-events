@@ -12,7 +12,7 @@ import com.example.campsitelotterysystem.db.CampsiteDB
 import com.example.campsitelotterysystem.model.User
 import kotlin.random.Random
 
-/** Unit tests for LotteryController's validation, saving, waitlist, and draw, using a fake database. */
+/** Unit tests for LotteryController's validation, saving, waitlist, draw, and waitlist notifications, using a fake database. */
 class LotteryControllerTest {
 
     /** A pretend database that remembers what it was asked to save. */
@@ -312,6 +312,57 @@ class LotteryControllerTest {
 
         assertTrue(db.updated.isEmpty())
     }
+    @Test
+    fun validWaitlistMessageHasNoErrors() {
+        val lottery = validLottery.copy(waitingList = listOf(avery, maya))
+        val errors = controller.validateWaitlistMessage(lottery, "Fire ban starts Friday.", listOf(avery))
+        assertTrue(errors.isEmpty())
+    }
+
+    @Test
+    fun blankWaitlistMessageIsAnError() {
+        val lottery = validLottery.copy(waitingList = listOf(avery, maya))
+        val errors = controller.validateWaitlistMessage(lottery, "   ", listOf(avery))
+        assertEquals(listOf("Message cannot be blank."), errors)
+    }
+
+    @Test
+    fun noRecipientsIsAnError() {
+        val lottery = validLottery.copy(waitingList = listOf(avery, maya))
+        val errors = controller.validateWaitlistMessage(lottery, "Fire ban starts Friday.", emptyList())
+        assertEquals(listOf("Select at least one entrant."), errors)
+    }
+
+    @Test
+    fun recipientNotOnWaitlistIsAnError() {
+        val lottery = validLottery.copy(waitingList = listOf(avery, maya))
+        val errors = controller.validateWaitlistMessage(lottery, "Fire ban starts Friday.", listOf(jordan))
+        assertEquals(listOf("Only entrants on the waitlist can be notified."), errors)
+    }
+
+    @Test
+    fun notificationHasOwnerMessageAndLottery() {
+        val lottery = validLottery.copy(id = lotteryId, waitingList = listOf(avery, maya))
+        val ownerId = "9e107d9d372bb682"
+        val notification = controller.buildWaitlistNotification(
+            lottery, ownerId, listOf(avery), "  Fire ban starts Friday.  ", Date(5000)
+        )
+        assertEquals(ownerId, notification.senderId)
+        assertEquals("Fire ban starts Friday.", notification.messageContent)
+        assertEquals("waitlist_message", notification.type)
+        assertEquals(lotteryId, notification.lotteryId)
+        assertEquals(Date(5000), notification.timestamp)
+    }
+
+    @Test
+    fun notificationRemovesDuplicateRecipients() {
+        val lottery = validLottery.copy(id = lotteryId, waitingList = listOf(avery, maya))
+        val notification = controller.buildWaitlistNotification(
+            lottery, "9e107d9d372bb682", listOf(avery, avery, maya), "Fire ban starts Friday.", Date(5000)
+        )
+        assertEquals(listOf(avery, maya), notification.recipientIds)
+    }
+
 
 
 
