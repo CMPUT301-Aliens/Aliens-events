@@ -119,7 +119,8 @@ class CampsiteUiTest {
             MaterialTheme {
                 CampsiteDetailsScreen(
                     campsite = pineLake,
-                    onBack = {}
+                    onBack = {},
+                    onRateCampsite = { _, _, _, _ -> }
                 )
             }
         }
@@ -150,7 +151,8 @@ class CampsiteUiTest {
                     campsite = pineLake,
                     onBack = {
                         backClicked = true
-                    }
+                    },
+                    onRateCampsite = { _, _, _, _ -> }
                 )
             }
         }
@@ -161,6 +163,60 @@ class CampsiteUiTest {
         composeRule.runOnIdle {
             assertEquals(true, backClicked)
         }
+    }
+
+    @Test
+    fun detailsScreenOpensRatingDialogAndSubmits() {
+        var ratingSubmitted = 0
+        var textSubmitted = ""
+        
+        composeRule.setContent {
+            MaterialTheme {
+                CampsiteDetailsScreen(
+                    campsite = pineLake,
+                    onBack = {},
+                    onRateCampsite = { rating, text, onComplete, _ -> 
+                        ratingSubmitted = rating
+                        textSubmitted = text
+                        onComplete()
+                    }
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Rate Campsite").performClick()
+        
+        composeRule.onNodeWithText("Leave a Rating").assertIsDisplayed()
+        
+        composeRule.onNodeWithContentDescription("4 Star").performClick()
+        
+        composeRule.onNodeWithText("Add a comment (optional)").performTextInput("Great view!")
+        
+        composeRule.onNodeWithText("Submit Rating").performClick()
+        
+        composeRule.runOnIdle {
+            assertEquals(4, ratingSubmitted)
+            assertEquals("Great view!", textSubmitted)
+        }
+    }
+
+    @Test
+    fun detailsScreenRatingDialogShowsErrorOnZeroStars() {
+        composeRule.setContent {
+            MaterialTheme {
+                CampsiteDetailsScreen(
+                    campsite = pineLake,
+                    onBack = {},
+                    onRateCampsite = { _, _, _, _ -> }
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Rate Campsite").performClick()
+        
+        composeRule.onNodeWithText("Submit Rating").performClick()
+        
+        composeRule.onNodeWithText("Error: Please select a star rating.").assertIsDisplayed()
     }
 }
 
