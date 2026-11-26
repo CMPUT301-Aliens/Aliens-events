@@ -27,13 +27,24 @@ import com.example.campsitelotterysystem.model.Lottery
 import com.example.campsitelotterysystem.model.User
 import com.example.campsitelotterysystem.ui.theme.CampsiteLotterySystemTheme
 import java.util.Date
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Checkbox
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.platform.LocalContext
+import com.example.campsitelotterysystem.controller.NotificationController
+import com.example.campsitelotterysystem.db.FirestoreNotificationDB
+import com.example.campsitelotterysystem.db.getCurrentUserId
 
 /**
- * Purpose: The owner's Waitlist & Winner Management screen (#41, #35).
+ * Purpose: The owner's Waitlist & Winner Management screen (#41, #35, #43).
  * Role: Opened from the lottery details with EXTRA_CAMPSITE_ID. Loads the campsite's
  * lottery, runs the draw if registration has ended, then shows the entrants and winners.
+ * The owner can tick entrants and send them a notification.
  * Outstanding issues: The draw only runs when this screen is opened after registration
- * ends. Winners are not notified yet. Reopen the screen to see new entrants.
+ * ends. Winners are not notified automatically yet. Reopen the screen to see new entrants.
  */
 class LotteryManagementActivity : ComponentActivity() {
     companion object {
@@ -64,6 +75,13 @@ fun LotteryManagementScreen(campsiteId: String?, modifier: Modifier = Modifier) 
     var entrants by remember { mutableStateOf<List<User>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var message by remember { mutableStateOf("") }
+    var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val notificationController = remember { NotificationController(FirestoreNotificationDB()) }
+    val context = LocalContext.current
+    val ownerId = remember { getCurrentUserId(context) }
+    var notificationText by remember { mutableStateOf("") }
+    var sendStatus by remember { mutableStateOf("") }
+    var isSending by remember { mutableStateOf(false) }
 
     LaunchedEffect(campsiteId) {
         if (campsiteId == null) {
@@ -151,13 +169,100 @@ fun LotteryManagementScreen(campsiteId: String?, modifier: Modifier = Modifier) 
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(top = 16.dp)
             )
-            if (!isLoading && entrants.isEmpty()) {
-                Text("No entrants have joined the waitlist yet.")
+            if (entrants.isNotEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = selectedIds.size == entrants.size,
+                        onCheckedChange = { checked ->
+                            selectedIds = if (checked) entrants.map { it.deviceId }.toSet() else emptySet()
+                        }
+                    )
+                    Text("Select all")
+                }
             }
             entrants.forEach { entrant ->
                 val name = entrant.name.ifBlank { "No name given" }
-                Text("$name (ID: ${entrant.deviceId})")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = entrant.deviceId in selectedIds,
+                        onCheckedChange = { checked ->
+                            selectedIds = if (checked) selectedIds + entrant.deviceId else selectedIds - entrant.deviceId
+                        }
+                    )
+                    Text("$name (ID: ${entrant.deviceId})")
+                }
             }
+            if (!isLoading && entrants.isEmpty()) {
+                Text("No entrants have joined the waitlist yet.")
+            }
+
+            // #43: the owner sends a notification to the entrants they ticked.
+            if (entrants.isNotEmpty()) {
+                Text(
+                    "Send a notification",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+                OutlinedTextField(
+                    value = notificationText,
+                    onValueChange = { notificationText = it },
+                    label = { Text("Message to selected entrants") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(
+                    enabled = !isSending,
+                    onClick = {
+                        val chosenIds = selectedIds.toList()
+                        val errors = lotteryController.validateWaitlistMessage(current, notificationText, chosenIds)
+                        if (errors.isNotEmpty()) {
+                            sendStatus = errors.joinToString("\n")
+                        } else {
+                            isSending = true
+                            sendStatus = ""
+                            val notification = lotteryController.buildWaitlistNotification(
+                                current, ownerId, chosenIds, notificationText, Date()
+                            )
+                            val recipients = entrants.filter { it.deviceId in selectedIds }
+                            val delivered = recipients.count { it.notificationsEnabled }
+                            // sendNotification calls onSuccess once per save: one for each entrant who allows
+                            // notifications, one for the owner's sent copy, and one for the admin log.
+                            val savesNeeded = delivered + 2
+                            var savesDone = 0
+                            var failed = false
+                            notificationController.sendNotification(
+                                recipients,
+                                ownerId,
+                                notification,
+                                onSuccess = {
+                                    savesDone++
+                                    if (savesDone == savesNeeded && !failed) {
+                                        isSending = false
+                                        var status = "Notification sent to $delivered entrant(s)."
+                                        val optedOut = recipients.size - delivered
+                                        if (optedOut > 0) status += " $optedOut turned notifications off."
+                                        sendStatus = status
+                                        notificationText = ""
+                                        selectedIds = emptySet()
+                                    }
+                                },
+                                onFailure = { error ->
+                                    if (!failed) {
+                                        failed = true
+                                        isSending = false
+                                        sendStatus = "Could not send the notification: ${error.message}"
+                                    }
+                                }
+                            )
+                        }
+                    }
+                ) {
+                    Text(if (isSending) "Sending..." else "Send Notification")
+                }
+                if (sendStatus.isNotEmpty()) {
+                    Text(sendStatus)
+                }
+            }
+
         }
     }
 }

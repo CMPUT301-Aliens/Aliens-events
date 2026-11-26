@@ -6,8 +6,9 @@ import com.example.campsitelotterysystem.db.UserDB
 import com.example.campsitelotterysystem.model.User
 import kotlin.random.Random
 import java.util.Date
+import com.example.campsitelotterysystem.model.Notification
 /**
- * Purpose: Checks, saves, and finds lotteries, gets the entrants on a waitlist, and draws the winners (#35).
+ * Purpose: Checks, saves, and finds lotteries, gets the entrants on a waitlist, draws the winners (#35), and checks and builds waitlist notifications (#43).
  * Role: Sits between the lottery screens and LotteryDB and UserDB. Invalid lotteries are never saved.
  * Outstanding issues: removeCampsiteFromLotteries is not built yet. There is no server, so the draw runs when a screen calls drawIfReady after registration ends.
  */
@@ -135,8 +136,48 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
         lotteryDB.updateLottery(drawn, onSuccess = { onSuccess(drawn) }, onFailure = onFailure)
     }
 
+    /**
+     * Checks a waitlist message before the owner sends it (#43).
+     * Returns a list of problems, or an empty list if it can be sent.
+     */
+    fun validateWaitlistMessage(
+        lottery: Lottery,
+        message: String,
+        recipientIds: List<String>
+    ): List<String> {
+        val errors = mutableListOf<String>()
+        if (message.isBlank()) {
+            errors.add("Message cannot be blank.")
+        }
+        if (recipientIds.isEmpty()) {
+            errors.add("Select at least one entrant.")
+        }
+        if (recipientIds.any { it !in lottery.waitingList }) {
+            errors.add("Only entrants on the waitlist can be notified.")
+        }
+        return errors
+    }
 
-
+    /**
+     * Builds the notification the owner sends to the chosen waitlist entrants (#43).
+     * The time is passed in so tests can use a fixed date.
+     */
+    fun buildWaitlistNotification(
+        lottery: Lottery,
+        senderId: String,
+        recipientIds: List<String>,
+        message: String,
+        now: Date
+    ): Notification {
+        return Notification(
+            timestamp = now,
+            senderId = senderId,
+            recipientIds = recipientIds.distinct(),
+            messageContent = message.trim(),
+            type = "waitlist_message",
+            lotteryId = lottery.id
+        )
+    }
 
 
 

@@ -85,6 +85,24 @@ class MainActivity : ComponentActivity() {
                                         .padding(16.dp),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
+
+                          // Temporary button to test MessageActivity — remove before final PR - adds random values for recipientID, reservationID, header
+                                    ExtendedFloatingActionButton(
+                                        onClick = {
+                                            val intent = Intent(
+                                                this@MainActivity,
+                                                com.example.campsitelotterysystem.ui.MessageActivity::class.java
+                                            ).apply {
+                                                putExtra(com.example.campsitelotterysystem.ui.MessageActivity.EXTRA_RESERVATION_ID, "test-res-101")
+                                                putExtra(com.example.campsitelotterysystem.ui.MessageActivity.EXTRA_RECIPIENT_ID, "test-owner-999")
+                                                putExtra(com.example.campsitelotterysystem.ui.MessageActivity.EXTRA_HEADER_TITLE, "Pine Valley — Owner")
+                                            }
+                                            startActivity(intent)
+                                        }
+                                    ) {
+                                        Text("Test Chat")
+                                    }
+
                                     // Button to open Admin Dashboard Activity
                                     ExtendedFloatingActionButton(
                                         onClick = {
