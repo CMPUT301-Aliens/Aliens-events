@@ -132,34 +132,49 @@ class MainActivity : ComponentActivity() {
                                 campsite = campsite,
                                 onBack = { selectedCampsite = null },
                                 onRateCampsite = { rating, text, onComplete, onError ->
-                                    val newCount = campsite.ratingCount + 1
-                                    val newAvg = ((campsite.averageRating * campsite.ratingCount) + rating) / newCount
-                                    val updatedCampsite = campsite.copy(
-                                        averageRating = newAvg,
-                                        ratingCount = newCount
-                                    )
-                                    val review = com.example.campsitelotterysystem.model.Review(
-                                        campsiteId = campsite.id,
-                                        rating = rating,
-                                        text = text,
-                                        reviewerName = currentUser?.name?.takeIf { it.isNotBlank() } ?: "Anonymous",
-                                        reviewerProfileImageUrl = currentUser?.profileImageUrl ?: ""
-                                    )
-                                    com.example.campsitelotterysystem.db.DBConnector.db.collection("reviews")
-                                        .add(review)
-                                        .addOnSuccessListener {
-                                            campsiteController.updateCampsite(
-                                                campsite = updatedCampsite,
-                                                onSuccess = {
-                                                    selectedCampsite = updatedCampsite
-                                                    onComplete()
-                                                },
-                                                onInvalid = { onError("Invalid campsite data") },
-                                                onFailure = { onError(it.message ?: "Failed to update") }
-                                            )
+                                    val db = com.example.campsitelotterysystem.db.DBConnector.db
+                                    db.collection("reviews")
+                                        .whereEqualTo("campsiteId", campsite.id)
+                                        .whereEqualTo("reviewerId", deviceId)
+                                        .get()
+                                        .addOnSuccessListener { snapshot ->
+                                            if (!snapshot.isEmpty) {
+                                                onError("You have already reviewed this campsite.")
+                                            } else {
+                                                val newCount = campsite.ratingCount + 1
+                                                val newAvg = ((campsite.averageRating * campsite.ratingCount) + rating) / newCount
+                                                val updatedCampsite = campsite.copy(
+                                                    averageRating = newAvg,
+                                                    ratingCount = newCount
+                                                )
+                                                val review = com.example.campsitelotterysystem.model.Review(
+                                                    campsiteId = campsite.id,
+                                                    reviewerId = deviceId,
+                                                    rating = rating,
+                                                    text = text,
+                                                    reviewerName = currentUser?.name?.takeIf { it.isNotBlank() } ?: "Anonymous",
+                                                    reviewerProfileImageUrl = currentUser?.profileImageUrl ?: ""
+                                                )
+                                                db.collection("reviews")
+                                                    .add(review)
+                                                    .addOnSuccessListener {
+                                                        campsiteController.updateCampsite(
+                                                            campsite = updatedCampsite,
+                                                            onSuccess = {
+                                                                selectedCampsite = updatedCampsite
+                                                                onComplete()
+                                                            },
+                                                            onInvalid = { onError("Invalid campsite data") },
+                                                            onFailure = { onError(it.message ?: "Failed to update") }
+                                                        )
+                                                    }
+                                                    .addOnFailureListener {
+                                                        onError(it.message ?: "Failed to save review")
+                                                    }
+                                            }
                                         }
                                         .addOnFailureListener {
-                                            onError(it.message ?: "Failed to save review")
+                                            onError(it.message ?: "Failed to check existing reviews")
                                         }
                                 }
                             )
