@@ -19,6 +19,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.campsitelotterysystem.model.Campsite
+import com.example.campsitelotterysystem.model.Review
+import com.example.campsitelotterysystem.db.DBConnector
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,6 +37,19 @@ fun CampsiteDetailsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showRateDialog by remember { mutableStateOf(false) }
+    var reviews by remember { mutableStateOf<List<Review>>(emptyList()) }
+
+    LaunchedEffect(campsite.id) {
+        DBConnector.db.collection("reviews")
+            .whereEqualTo("campsiteId", campsite.id)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                reviews = querySnapshot.toObjects(Review::class.java)
+            }
+            .addOnFailureListener {
+                // Silently ignore or log error
+            }
+    }
 
     BackHandler {
         onBack()
@@ -168,6 +187,26 @@ fun CampsiteDetailsScreen(
                     "No tags available."
                 }
             )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+
+            Text(
+                text = "Reviews",
+                style = MaterialTheme.typography.titleMedium
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (reviews.isEmpty()) {
+                Text("No reviews yet.", style = MaterialTheme.typography.bodyMedium)
+            } else {
+                reviews.forEach { review ->
+                    ReviewItem(review)
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
             
             Spacer(modifier = Modifier.height(80.dp))
         }
@@ -288,6 +327,72 @@ fun RateCampsiteDialog(
                 ) {
                     Text("Submit Rating")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ReviewItem(review: Review) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (review.reviewerProfileImageUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = review.reviewerProfileImageUrl,
+                        contentDescription = "Profile picture",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Default Profile",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Column {
+                    Text(
+                        text = review.reviewerName.ifBlank { "Anonymous" },
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Filled.Star,
+                            contentDescription = "Star",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = review.rating.toString(),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+            if (review.text.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = review.text,
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }
