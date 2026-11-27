@@ -54,11 +54,11 @@ import com.example.campsitelotterysystem.db.FirestoreCampsiteDB
 import com.example.campsitelotterysystem.model.Campsite
 
 /**
- * Purpose: The owner's screen for creating and viewing a lottery (#15, #17, #32, #16).
+ * Purpose: The owner's screen for creating, viewing, and editing a lottery (#15, #17, #32, #16, #33).
  * Role: Opened by the Manage Lottery button with EXTRA_CAMPSITE_ID. The owner can add more of
- * their campsites to the lottery. Sends the lottery to LotteryController and shows the result.
- * View Waitlist opens LotteryManagementActivity.
- * Outstanding issues: A saved lottery can't be edited yet (#33).
+ * their campsites to the lottery and edit it until registration ends. Sends the lottery to
+ * LotteryController and shows the result. View Waitlist opens LotteryManagementActivity.
+ * Outstanding issues: Past dates are only blocked when editing, not when creating a lottery.
  */
 class LotteryEditActivity : ComponentActivity() {
     companion object {
@@ -101,6 +101,7 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
     var ownerCampsites by remember { mutableStateOf<List<Campsite>>(emptyList()) }
     var takenCampsiteIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var selectedCampsiteIds by remember { mutableStateOf(setOfNotNull(campsiteId)) }
+    var isEditing by remember { mutableStateOf(false) }
     LaunchedEffect(campsiteId) {
         if (campsiteId != null) {
             lotteryController.getLotteryForCampsite(
@@ -149,12 +150,14 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
         if (isLoading) {
             Text("Loading...")
         }
-        if (!isLoading && savedLottery == null) {
+        if (!isLoading && (savedLottery == null || isEditing)) {
             // #16: the owner picks which of their campsites go in this lottery.
             Text("Campsites in this lottery", style = MaterialTheme.typography.titleMedium)
             ownerCampsites.forEach { campsite ->
                 val isThisCampsite = campsite.id == campsiteId
-                val isTaken = campsite.id in takenCampsiteIds
+                // #33: when editing, this lottery's own campsites aren't "taken".
+                val inThisLottery = campsite.id in (savedLottery?.campsiteIds ?: emptyList())
+                val isTaken = campsite.id in takenCampsiteIds && !inThisLottery
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
                         checked = campsite.id in selectedCampsiteIds,
@@ -173,20 +176,18 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
                 }
             }
 
-
             OutlinedTextField(
                 value = numberOfWinners,
                 onValueChange = { numberOfWinners = it },
                 label = { Text("Number of winners") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-
             )
             DateTimeField("Registration start", registrationStart) { registrationStart = it }
             DateTimeField("Registration end", registrationEnd) { registrationEnd = it }
             DateTimeField("Booking start", bookingStart) { bookingStart = it }
             DateTimeField("Booking end", bookingEnd) { bookingEnd = it }
             Button(
-                enabled = formIsFilled  && !isSaving ,
+                enabled = formIsFilled && !isSaving,
                 onClick = {
                     val lottery = Lottery(
                         ownerId = ownerId,
@@ -196,36 +197,66 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
                         bookingStartDate = bookingStart!!,
                         bookingEndDate = bookingEnd!!,
                         numberOfWinners = numberOfWinners.toIntOrNull() ?: 0
-
                     )
                     isSaving = true
-                    lotteryController.createLotteryListing(
-                        lottery,
-                        onSuccess = { id ->
-                            statusMessage = "Saved lottery: $id"
-                            savedLottery = lottery.copy(id = id)
-                        },
-                        onInvalid = { errors -> statusMessage = errors.joinToString("\n")
-                            isSaving = false},
-                        onFailure = { error -> statusMessage = "Could not save: ${error.message}"
-                            isSaving = false }
-                    )
+                    val saved = savedLottery
+                    if (isEditing && saved != null) {
+                        // #33: save the owner's changes to the existing lottery.
+                        lotteryController.editLotteryListing(
+                            saved,
+                            lottery,
+                            Date(),
+                            onSuccess = { updated ->
+                                savedLottery = updated
+                                isEditing = false
+                                isSaving = false
+                                statusMessage = "Changes saved."
+                            },
+                            onInvalid = { errors ->
+                                statusMessage = errors.joinToString("\n")
+                                isSaving = false
+                            },
+                            onFailure = { error ->
+                                statusMessage = "Could not save changes: ${error.message}"
+                                isSaving = false
+                            }
+                        )
+                    } else {
+                        lotteryController.createLotteryListing(
+                            lottery,
+                            onSuccess = { id ->
+                                statusMessage = "Saved lottery: $id"
+                                savedLottery = lottery.copy(id = id)
+                                isSaving = false
+                            },
+                            onInvalid = { errors ->
+                                statusMessage = errors.joinToString("\n")
+                                isSaving = false
+                            },
+                            onFailure = { error ->
+                                statusMessage = "Could not save: ${error.message}"
+                                isSaving = false
+                            }
+                        )
+                    }
                 }
             ) {
-                Text("Publish Lottery Listing")
+                Text(if (isEditing) "Save Changes" else "Publish Lottery Listing")
+            }
+            if (isEditing) {
+                OutlinedButton(onClick = {
+                    isEditing = false
+                    statusMessage = ""
+                }) {
+                    Text("Cancel")
+                }
             }
         }
         Text(text = statusMessage)
-        savedLottery?.let { saved ->
+        savedLottery?.takeIf { !isEditing }?.let { saved ->
             Text("Campsites: ${lotteryController.campsiteNames(saved.campsiteIds, ownerCampsites).joinToString(", ")}")
             Text("Number of winners: ${saved.numberOfWinners}")
-            Text(
-                "Registration: ${formatDateTime(saved.registrationStartDate)} to ${
-                    formatDateTime(
-                        saved.registrationEndDate
-                    )
-                }"
-            )
+            Text("Registration: ${formatDateTime(saved.registrationStartDate)} to ${formatDateTime(saved.registrationEndDate)}")
             Text("Booking: ${formatDateTime(saved.bookingStartDate)} to ${formatDateTime(saved.bookingEndDate)}")
             Button(onClick = {
                 context.startActivity(
@@ -234,6 +265,23 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
                 )
             }) {
                 Text("View Waitlist")
+            }
+            // #33: the owner can change the lottery until registration ends.
+            if (saved.canBeEdited(Date())) {
+                OutlinedButton(onClick = {
+                    numberOfWinners = saved.numberOfWinners.toString()
+                    registrationStart = saved.registrationStartDate
+                    registrationEnd = saved.registrationEndDate
+                    bookingStart = saved.bookingStartDate
+                    bookingEnd = saved.bookingEndDate
+                    selectedCampsiteIds = saved.campsiteIds.toSet()
+                    statusMessage = ""
+                    isEditing = true
+                }) {
+                    Text("Edit Lottery")
+                }
+            } else {
+                Text("This lottery can't be changed because registration has ended.")
             }
         }
 

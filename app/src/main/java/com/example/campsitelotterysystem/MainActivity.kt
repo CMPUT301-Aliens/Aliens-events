@@ -56,8 +56,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            var currentUser by rememberSaveable { mutableStateOf<com.example.campsitelotterysystem.model.User?>(null) }
-
+            var currentUser by remember { mutableStateOf<com.example.campsitelotterysystem.model.User?>(null) }
+            
             androidx.compose.runtime.LaunchedEffect(deviceId) {
                 FirestoreUserDB().getOrCreateUser(
                     deviceId,

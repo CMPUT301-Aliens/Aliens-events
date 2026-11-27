@@ -5,7 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Date
 
-/** Unit tests for Lottery.isRegistrationOpen and Lottery.isReadyToDraw. */
+/** Unit tests for Lottery.isRegistrationOpen, Lottery.isReadyToDraw, and Lottery.canBeEdited. */
 class LotteryTest {
 
     private val lottery = Lottery(
@@ -67,5 +67,26 @@ class LotteryTest {
     fun notReadyToDrawWhenAlreadyDrawn() {
         val drawn = lottery.copy(status = "drawn")
         assertFalse(drawn.isReadyToDraw(Date(3000)))
+    }
+
+    @Test
+    fun canBeEditedBeforeRegistrationStarts() {
+        assertTrue(lottery.canBeEdited(Date(500)))
+    }
+
+    @Test
+    fun canBeEditedDuringRegistration() {
+        assertTrue(lottery.canBeEdited(Date(1500)))
+    }
+
+    @Test
+    fun cannotBeEditedAfterRegistrationEnds() {
+        assertFalse(lottery.canBeEdited(Date(2500)))
+    }
+
+    @Test
+    fun cannotBeEditedWhenDrawn() {
+        val drawn = lottery.copy(status = "drawn")
+        assertFalse(drawn.canBeEdited(Date(1500)))
     }
 }
