@@ -26,9 +26,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.campsitelotterysystem.controller.CampsiteController
 import com.example.campsitelotterysystem.db.FirestoreCampsiteDB
+import com.example.campsitelotterysystem.db.FirestoreLotteryDB
 import com.example.campsitelotterysystem.db.FirestoreUserDB
+import com.example.campsitelotterysystem.db.LotteryDB
 import com.example.campsitelotterysystem.db.getCurrentUserId
 import com.example.campsitelotterysystem.model.Campsite
+import com.example.campsitelotterysystem.model.Lottery
+import com.example.campsitelotterysystem.model.User
 import com.example.campsitelotterysystem.ui.AdminDashboardActivity
 import com.example.campsitelotterysystem.ui.CampsiteDetailsScreen
 import com.example.campsitelotterysystem.ui.CampsiteSearchScreen
@@ -130,6 +134,7 @@ class MainActivity : ComponentActivity() {
                         } else {
                             CampsiteDetailsScreen(
                                 campsite = campsite,
+                                userId = deviceId,
                                 onBack = { selectedCampsite = null },
                                 onRateCampsite = { rating, text, onComplete, onError ->
                                     val db = com.example.campsitelotterysystem.db.DBConnector.db
