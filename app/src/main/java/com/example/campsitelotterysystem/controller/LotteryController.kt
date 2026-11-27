@@ -7,8 +7,9 @@ import com.example.campsitelotterysystem.model.User
 import kotlin.random.Random
 import java.util.Date
 import com.example.campsitelotterysystem.model.Notification
+import com.example.campsitelotterysystem.model.Campsite
 /**
- * Purpose: Checks, saves, and finds lotteries, gets the entrants on a waitlist, draws the winners (#35), and checks and builds waitlist notifications (#43).
+ * Purpose: Checks, saves, and finds lotteries, gets the entrants on a waitlist, draws the winners (#35), checks and builds waitlist notifications (#43), and finds which campsites are already in a lottery (#16).
  * Role: Sits between the lottery screens and LotteryDB and UserDB. Invalid lotteries are never saved.
  * Outstanding issues: removeCampsiteFromLotteries is not built yet. There is no server, so the draw runs when a screen calls drawIfReady after registration ends.
  */
@@ -177,6 +178,48 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
             type = "waitlist_message",
             lotteryId = lottery.id
         )
+    }
+
+    /**
+     * Finds which of the given campsites are already in an active lottery (#16).
+     * Sends back their IDs, so the form can stop the owner from adding them to a second lottery.
+     */
+    fun findCampsitesInALottery(
+        campsiteIds: List<String>,
+        onSuccess: (Set<String>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        if (campsiteIds.isEmpty()) {
+            onSuccess(emptySet())
+            return
+        }
+        val taken = mutableSetOf<String>()
+        var checked = 0
+        var failed = false
+        campsiteIds.forEach { id ->
+            lotteryDB.getLotteryForCampsite(
+                id,
+                onSuccess = { lottery ->
+                    if (lottery != null) taken.add(id)
+                    checked++
+                    if (checked == campsiteIds.size && !failed) onSuccess(taken)
+                },
+                onFailure = { error ->
+                    if (!failed) {
+                        failed = true
+                        onFailure(error)
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * Turns a lottery's campsite IDs into campsite names for the screen (#16).
+     * Shows the ID instead if a campsite's name isn't known.
+     */
+    fun campsiteNames(campsiteIds: List<String>, campsites: List<Campsite>): List<String> {
+        return campsiteIds.map { id -> campsites.firstOrNull { it.id == id }?.name ?: id }
     }
 
 
