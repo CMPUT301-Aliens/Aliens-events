@@ -243,6 +243,8 @@ fun CampsiteEditScreen(
                             pricePerNight = price.toDoubleOrNull() ?: 0.0,
                             tags = tags.split(",").map { it.trim() }.filter { it.isNotEmpty() },
                             rulesAndPolicy = rules.trim(),
+                            averageRating = loaded.averageRating,
+                            ratingCount = loaded.ratingCount,
                             coordinates = run {
                                 val latitude = latitude.toDoubleOrNull()
                                 val longitude = longitude.toDoubleOrNull()

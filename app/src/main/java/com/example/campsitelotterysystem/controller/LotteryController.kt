@@ -7,8 +7,10 @@ import com.example.campsitelotterysystem.model.User
 import kotlin.random.Random
 import java.util.Date
 import com.example.campsitelotterysystem.model.Notification
+import com.example.campsitelotterysystem.model.Campsite
 /**
- * Purpose: Checks, saves, and finds lotteries, gets the entrants on a waitlist, draws the winners (#35), and checks and builds waitlist notifications (#43).
+ * Purpose: Checks, saves, and finds lotteries, gets the entrants on a waitlist, draws the winners (#35),
+ * checks and builds waitlist notifications (#43), finds which campsites are already in a lottery (#16), and saves owners' edits (#33).
  * Role: Sits between the lottery screens and LotteryDB and UserDB. Invalid lotteries are never saved.
  * Outstanding issues: removeCampsiteFromLotteries is not built yet. There is no server, so the draw runs when a screen calls drawIfReady after registration ends.
  */
@@ -78,6 +80,44 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
         lotteryDB.updateLottery(lottery, onSuccess, onFailure)
 
 
+    }
+
+    /**
+     * Saves an owner's changes to a lottery that already exists (#33).
+     * Only the campsites, dates, and number of winners change. The ID, owner, waiting list,
+     * and winners stay the same. Edits are only allowed until registration ends, and the new
+     * registration end can't be in the past.
+     * Sends the saved lottery to onSuccess, or the problems to onInvalid.
+     */
+    fun editLotteryListing(
+        saved: Lottery,
+        changes: Lottery,
+        now: Date,
+        onSuccess: (Lottery) -> Unit,
+        onInvalid: (List<String>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        if (!saved.canBeEdited(now)) {
+            onInvalid(listOf("This lottery can't be changed after registration ends."))
+            return
+        }
+        val updated = saved.copy(
+            campsiteIds = changes.campsiteIds,
+            registrationStartDate = changes.registrationStartDate,
+            registrationEndDate = changes.registrationEndDate,
+            bookingStartDate = changes.bookingStartDate,
+            bookingEndDate = changes.bookingEndDate,
+            numberOfWinners = changes.numberOfWinners
+        )
+        val errors = validateLottery(updated).toMutableList()
+        if (updated.registrationEndDate.before(now)) {
+            errors.add("Registration end can't be in the past.")
+        }
+        if (errors.isNotEmpty()) {
+            onInvalid(errors)
+            return
+        }
+        lotteryDB.updateLottery(updated, onSuccess = { onSuccess(updated) }, onFailure = onFailure)
     }
     /** Finds the campsite's current lottery, or null if it has none. */
     fun getLotteryForCampsite(campsiteId: String, onSuccess: (Lottery?) -> Unit, onFailure: (Exception) -> Unit)
@@ -177,6 +217,48 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
             type = "waitlist_message",
             lotteryId = lottery.id
         )
+    }
+
+    /**
+     * Finds which of the given campsites are already in an active lottery (#16).
+     * Sends back their IDs, so the form can stop the owner from adding them to a second lottery.
+     */
+    fun findCampsitesInALottery(
+        campsiteIds: List<String>,
+        onSuccess: (Set<String>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        if (campsiteIds.isEmpty()) {
+            onSuccess(emptySet())
+            return
+        }
+        val taken = mutableSetOf<String>()
+        var checked = 0
+        var failed = false
+        campsiteIds.forEach { id ->
+            lotteryDB.getLotteryForCampsite(
+                id,
+                onSuccess = { lottery ->
+                    if (lottery != null) taken.add(id)
+                    checked++
+                    if (checked == campsiteIds.size && !failed) onSuccess(taken)
+                },
+                onFailure = { error ->
+                    if (!failed) {
+                        failed = true
+                        onFailure(error)
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * Turns a lottery's campsite IDs into campsite names for the screen (#16).
+     * Shows the ID instead if a campsite's name isn't known.
+     */
+    fun campsiteNames(campsiteIds: List<String>, campsites: List<Campsite>): List<String> {
+        return campsiteIds.map { id -> campsites.firstOrNull { it.id == id }?.name ?: id }
     }
 
 
