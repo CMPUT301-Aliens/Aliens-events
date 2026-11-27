@@ -119,6 +119,7 @@ class CampsiteUiTest {
             MaterialTheme {
                 CampsiteDetailsScreen(
                     campsite = pineLake,
+                    userId = "test-user",
                     onBack = {},
                     onRateCampsite = { _, _, _, _ -> }
                 )
@@ -149,6 +150,7 @@ class CampsiteUiTest {
             MaterialTheme {
                 CampsiteDetailsScreen(
                     campsite = pineLake,
+                    userId = "test-user",
                     onBack = {
                         backClicked = true
                     },
@@ -174,6 +176,7 @@ class CampsiteUiTest {
             MaterialTheme {
                 CampsiteDetailsScreen(
                     campsite = pineLake,
+                    userId = "test-user",
                     onBack = {},
                     onRateCampsite = { rating, text, onComplete, _ -> 
                         ratingSubmitted = rating
@@ -206,6 +209,7 @@ class CampsiteUiTest {
             MaterialTheme {
                 CampsiteDetailsScreen(
                     campsite = pineLake,
+                    userId = "test-user",
                     onBack = {},
                     onRateCampsite = { _, _, _, _ -> }
                 )
