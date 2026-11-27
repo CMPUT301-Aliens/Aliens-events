@@ -14,6 +14,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.campsitelotterysystem.model.Campsite
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import com.example.campsitelotterysystem.controller.LotteryController
+import com.example.campsitelotterysystem.db.FirestoreLotteryDB
+import com.example.campsitelotterysystem.db.FirestoreUserDB
+import com.example.campsitelotterysystem.db.getCurrentUserId
+import com.example.campsitelotterysystem.model.Lottery
+import kotlinx.coroutines.launch
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,7 +37,38 @@ fun CampsiteDetailsScreen(
         onBack()
     }
 
+    // state variables for fetching the campsite's active lottery and tracking the current user
+    val context = LocalContext.current
+    val currentUserId = remember { getCurrentUserId(context) }
+    val lotteryController = remember { LotteryController(FirestoreLotteryDB(), FirestoreUserDB()) }
+
+    var activeLottery by remember { mutableStateOf<Lottery?>(null) }
+    var isLoadingLottery by remember { mutableStateOf(true) }
+    var waitlistMessage by remember { mutableStateOf("") }
+    var isUpdatingWaitlist by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(campsite.id) {
+        if (campsite.id.isNotBlank()) {
+            lotteryController.getLotteryForCampsite(
+                campsiteId = campsite.id,
+                onSuccess = { lottery ->
+                    activeLottery = lottery
+                    isLoadingLottery = false
+                },
+                onFailure = {
+                    waitlistMessage = "Could not load lottery info."
+                    isLoadingLottery = false
+                }
+            )
+        } else {
+            isLoadingLottery = false
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -48,6 +90,7 @@ fun CampsiteDetailsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
 
@@ -151,6 +194,110 @@ fun CampsiteDetailsScreen(
                     "No tags available."
                 }
             )
+            // -------------------------------------------------------------------------------------
+            //                                waitlist section
+            // -------------------------------------------------------------------------------------
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+            Text(
+                text = "Lottery & Waiting List",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            when {
+                isLoadingLottery -> {
+                    Text("Checking for active lottery...")
+                }
+                activeLottery == null -> {
+                    Text("No active lottery for this campsite right now.")
+                }
+                else -> {
+                    val lottery = activeLottery!!
+                    val isJoined = lottery.waitingList.contains(currentUserId)
+                    val isFull = lottery.waitlistCapacity != null &&
+                            lottery.waitingList.size >= lottery.waitlistCapacity
+                    val isOpen = lottery.isRegistrationOpen(Date())
+
+                    Text("Registration closes: ${formatDateTime(lottery.registrationEndDate)}")
+                    Text("Entrants on waitlist: ${lottery.waitingList.size}" +
+                            (lottery.waitlistCapacity?.let { " / $it" } ?: ""))
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (isJoined) {
+                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isUpdatingWaitlist,
+                            onClick = {
+                                isUpdatingWaitlist = true
+                                lotteryController.leaveWaitingList(
+                                    userId = currentUserId,
+                                    lottery = lottery,
+                                    onSuccess = { updated ->
+                                        activeLottery = updated
+                                        waitlistMessage = "You left the waiting list."
+                                        isUpdatingWaitlist = false
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Left the waiting list.")
+                                        }
+                                    },
+                                    onFailure = {
+                                        waitlistMessage = "Failed to leave waiting list."
+                                        isUpdatingWaitlist = false
+                                    }
+                                )
+                            }
+                        ) {
+                            Text("Leave Waiting List")
+                        }
+                    } else {
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = isOpen && !isFull && !isUpdatingWaitlist,
+                            onClick = {
+                                isUpdatingWaitlist = true
+                                lotteryController.joinWaitingList(
+                                    userId = currentUserId,
+                                    lottery = lottery,
+                                    onSuccess = { updated ->
+                                        activeLottery = updated
+                                        waitlistMessage = "Joined waiting list!"
+                                        isUpdatingWaitlist = false
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Successfully joined the lottery!")
+                                        }
+                                    },
+                                    onInvalid = { reason ->
+                                        waitlistMessage = reason
+                                        isUpdatingWaitlist = false
+                                    },
+                                    onFailure = { err ->
+                                        waitlistMessage = err.message ?: "Could not join waiting list."
+                                        isUpdatingWaitlist = false
+                                    }
+                                )
+                            }
+                        ) {
+                            Text(
+                                when {
+                                    !isOpen -> "Registration Closed"
+                                    isFull -> "Waitlist Full"
+                                    else -> "Join Waiting List"
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (waitlistMessage.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = waitlistMessage,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }
