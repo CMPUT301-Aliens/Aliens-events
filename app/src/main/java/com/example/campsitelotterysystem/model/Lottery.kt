@@ -4,7 +4,7 @@ import java.util.Date
  * Purpose: Data model for one campsite lottery.
  * Role: Stored in the "lotteries" Firestore collection. Created by LotteryController
  * and read by entrants who join the waiting list.
- * Outstanding issues: waitlistCapacity is not used yet (#34 is not in this checkpoint).
+ * Outstanding issues: waitlistCapacity is not used yet (#34).
  * status changes from "open" to "drawn" when the draw (#35) runs.
  * @property id Firestore document ID
  * @property ownerId device ID of the owner who created the lottery
@@ -55,5 +55,17 @@ data class Lottery(
     fun isReadyToDraw(now: Date): Boolean {
         return status == "open" &&
                 now.after(registrationEndDate)
+    }
+
+    /**
+     * Checks whether the owner can still change this lottery (#33).
+     * Changes are allowed until registration ends, so nobody joins under one set of
+     * rules and then gets drawn under another.
+     *
+     * @param now the current time
+     * @return true if the lottery is open and registration hasn't ended yet
+     */
+    fun canBeEdited(now: Date): Boolean {
+        return status == "open" && !now.after(registrationEndDate)
     }
 }
