@@ -11,8 +11,9 @@ import com.example.campsitelotterysystem.db.UserDB
 import com.example.campsitelotterysystem.db.CampsiteDB
 import com.example.campsitelotterysystem.model.User
 import kotlin.random.Random
+import com.example.campsitelotterysystem.model.Campsite
 
-/** Unit tests for LotteryController's validation, saving, waitlist, draw, and waitlist notifications, using a fake database. */
+/** Unit tests for LotteryController's validation, saving, waitlist, draw, waitlist notifications, and campsite lookups, using a fake database. */
 class LotteryControllerTest {
 
     /** A pretend database that remembers what it was asked to save. */
@@ -363,7 +364,65 @@ class LotteryControllerTest {
         assertEquals(listOf(avery, maya), notification.recipientIds)
     }
 
+    @Test
+    fun campsitesAlreadyInALotteryAreFound() {
+        val db = FakeLotteryDB()
+        db.added.add(validLottery.copy(campsiteIds = listOf("campsite-1", "campsite-2")))
+        var taken = emptySet<String>()
+
+        LotteryController(db, FakeUserDB()).findCampsitesInALottery(
+            listOf("campsite-1", "campsite-2", "campsite-3"),
+            onSuccess = { taken = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals(setOf("campsite-1", "campsite-2"), taken)
+    }
+
+    @Test
+    fun closedLotteryDoesNotTakeACampsite() {
+        val db = FakeLotteryDB()
+        db.added.add(validLottery.copy(campsiteIds = listOf("campsite-1"), status = "closed"))
+        var taken = setOf("not set")
+
+        LotteryController(db, FakeUserDB()).findCampsitesInALottery(
+            listOf("campsite-1"),
+            onSuccess = { taken = it },
+            onFailure = { throw it }
+        )
+
+        assertTrue(taken.isEmpty())
+    }
+
+    @Test
+    fun noCampsitesMeansNoneAreTaken() {
+        var taken = setOf("not set")
+
+        controller.findCampsitesInALottery(
+            emptyList(),
+            onSuccess = { taken = it },
+            onFailure = { throw it }
+        )
+
+        assertTrue(taken.isEmpty())
+    }
 
 
+    @Test
+    fun campsiteNamesComeInLotteryOrder() {
+        val campsites = listOf(
+            Campsite(id = "campsite-1", name = "Lake Louise Pine Camp"),
+            Campsite(id = "campsite-2", name = "Valley View Ridge")
+        )
+        val names = controller.campsiteNames(listOf("campsite-2", "campsite-1"), campsites)
+        assertEquals(listOf("Valley View Ridge", "Lake Louise Pine Camp"), names)
+    }
+
+    @Test
+    fun unknownCampsiteShowsItsId() {
+        val campsites = listOf(Campsite(id = "campsite-1", name = "Lake Louise Pine Camp"))
+        val names = controller.campsiteNames(listOf("campsite-1", "campsite-9"), campsites)
+        assertEquals(listOf("Lake Louise Pine Camp", "campsite-9"), names)
+    }
 
 }
