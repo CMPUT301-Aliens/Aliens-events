@@ -13,7 +13,8 @@ import com.example.campsitelotterysystem.model.User
 import kotlin.random.Random
 import com.example.campsitelotterysystem.model.Campsite
 
-/** Unit tests for LotteryController's validation, saving, waitlist, draw, waitlist notifications, and campsite lookups, using a fake database. */
+/** Unit tests for LotteryController's validation, saving, editing, waitlist, draw, waitlist notifications, and campsite lookups, using a fake database. */
+
 class LotteryControllerTest {
 
     /** A pretend database that remembers what it was asked to save. */
@@ -423,6 +424,78 @@ class LotteryControllerTest {
         val campsites = listOf(Campsite(id = "campsite-1", name = "Lake Louise Pine Camp"))
         val names = controller.campsiteNames(listOf("campsite-1", "campsite-9"), campsites)
         assertEquals(listOf("Lake Louise Pine Camp", "campsite-9"), names)
+    }
+
+    @Test
+    fun editKeepsTheWaitlistAndId() {
+        val db = FakeLotteryDB()
+        val saved = validLottery.copy(id = lotteryId, waitingList = listOf(avery, maya))
+        val changes = validLottery.copy(numberOfWinners = 1, registrationEndDate = Date(2500))
+        var result: Lottery? = null
+
+        LotteryController(db, FakeUserDB()).editLotteryListing(
+            saved, changes, Date(1500),
+            onSuccess = { result = it },
+            onInvalid = { throw AssertionError("should be valid: $it") },
+            onFailure = { throw it }
+        )
+
+        assertEquals(lotteryId, db.updated[0].id)
+        assertEquals(listOf(avery, maya), db.updated[0].waitingList)
+        assertEquals(1, db.updated[0].numberOfWinners)
+        assertEquals(Date(2500), db.updated[0].registrationEndDate)
+        assertEquals(db.updated[0], result)
+    }
+
+    @Test
+    fun editAfterRegistrationEndsIsRejected() {
+        val db = FakeLotteryDB()
+        val saved = validLottery.copy(id = lotteryId)
+        var errors = emptyList<String>()
+
+        LotteryController(db, FakeUserDB()).editLotteryListing(
+            saved, saved.copy(numberOfWinners = 5), Date(2500),
+            onSuccess = { throw AssertionError("should not save") },
+            onInvalid = { errors = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals(listOf("This lottery can't be changed after registration ends."), errors)
+        assertTrue(db.updated.isEmpty())
+    }
+
+    @Test
+    fun editCannotMoveRegistrationEndIntoThePast() {
+        val db = FakeLotteryDB()
+        val saved = validLottery.copy(id = lotteryId)
+        var errors = emptyList<String>()
+
+        LotteryController(db, FakeUserDB()).editLotteryListing(
+            saved, saved.copy(registrationEndDate = Date(1200)), Date(1500),
+            onSuccess = { throw AssertionError("should not save") },
+            onInvalid = { errors = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals(listOf("Registration end can't be in the past."), errors)
+        assertTrue(db.updated.isEmpty())
+    }
+
+    @Test
+    fun invalidEditIsRejected() {
+        val db = FakeLotteryDB()
+        val saved = validLottery.copy(id = lotteryId)
+        var errors = emptyList<String>()
+
+        LotteryController(db, FakeUserDB()).editLotteryListing(
+            saved, saved.copy(numberOfWinners = 0), Date(1500),
+            onSuccess = { throw AssertionError("should not save") },
+            onInvalid = { errors = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals(listOf("Number of winners must be greater than zero."), errors)
+        assertTrue(db.updated.isEmpty())
     }
 
 }
