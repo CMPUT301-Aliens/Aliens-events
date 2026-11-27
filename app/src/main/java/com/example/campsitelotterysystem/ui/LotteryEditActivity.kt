@@ -45,13 +45,20 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Alignment
+import com.example.campsitelotterysystem.controller.CampsiteController
+import com.example.campsitelotterysystem.db.FirestoreCampsiteDB
+import com.example.campsitelotterysystem.model.Campsite
 
 /**
- * Purpose: The owner's screen for creating and viewing a lottery (#15, #17, #32).
- * Role: Opened by the Manage Lottery button with EXTRA_CAMPSITE_ID. Sends the lottery to
- * LotteryController and shows the result. View Waitlist opens LotteryManagementActivity.
- * Outstanding issues: A saved lottery can't be edited yet (#33 is not in this checkpoint).
- * It uses one campsite per lottery (#16 is not in this checkpoint).
+ * Purpose: The owner's screen for creating and viewing a lottery (#15, #17, #32, #16).
+ * Role: Opened by the Manage Lottery button with EXTRA_CAMPSITE_ID. The owner can add more of
+ * their campsites to the lottery. Sends the lottery to LotteryController and shows the result.
+ * View Waitlist opens LotteryManagementActivity.
+ * Outstanding issues: A saved lottery can't be edited yet (#33).
  */
 class LotteryEditActivity : ComponentActivity() {
     companion object {
@@ -90,6 +97,10 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
     var isLoading by remember { mutableStateOf(campsiteId != null) }
     val lotteryController = remember { LotteryController(FirestoreLotteryDB(), FirestoreUserDB()) }
     var isSaving by remember { mutableStateOf(false) }
+    val campsiteController = remember { CampsiteController(FirestoreCampsiteDB()) }
+    var ownerCampsites by remember { mutableStateOf<List<Campsite>>(emptyList()) }
+    var takenCampsiteIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var selectedCampsiteIds by remember { mutableStateOf(setOfNotNull(campsiteId)) }
     LaunchedEffect(campsiteId) {
         if (campsiteId != null) {
             lotteryController.getLotteryForCampsite(
@@ -108,6 +119,22 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
         }
     }
 
+    // #16: load the owner's campsites, then find which are already in a lottery.
+    LaunchedEffect(ownerId) {
+        campsiteController.getOwnerCampsites(
+            ownerId,
+            onSuccess = { campsites ->
+                ownerCampsites = campsites
+                lotteryController.findCampsitesInALottery(
+                    campsites.map { it.id },
+                    onSuccess = { taken -> takenCampsiteIds = taken },
+                    onFailure = { error -> statusMessage = "Could not check your campsites: ${error.message}" }
+                )
+            },
+            onFailure = { error -> statusMessage = "Could not load your campsites: ${error.message}" }
+        )
+    }
+
 
     val formIsFilled = numberOfWinners.isNotBlank() &&
             registrationStart != null && registrationEnd != null &&
@@ -118,11 +145,33 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        Text(text = "Lottery for campsite: $campsiteId")
+        Text(text = "Lottery for campsite: ${lotteryController.campsiteNames(listOfNotNull(campsiteId), ownerCampsites).joinToString()}")
         if (isLoading) {
             Text("Loading...")
         }
         if (!isLoading && savedLottery == null) {
+            // #16: the owner picks which of their campsites go in this lottery.
+            Text("Campsites in this lottery", style = MaterialTheme.typography.titleMedium)
+            ownerCampsites.forEach { campsite ->
+                val isThisCampsite = campsite.id == campsiteId
+                val isTaken = campsite.id in takenCampsiteIds
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = campsite.id in selectedCampsiteIds,
+                        enabled = !isThisCampsite && !isTaken,
+                        onCheckedChange = { checked ->
+                            selectedCampsiteIds = if (checked) selectedCampsiteIds + campsite.id else selectedCampsiteIds - campsite.id
+                        }
+                    )
+                    Text(
+                        when {
+                            isThisCampsite -> "${campsite.name} (this campsite)"
+                            isTaken -> "${campsite.name} (already in a lottery)"
+                            else -> campsite.name
+                        }
+                    )
+                }
+            }
 
 
             OutlinedTextField(
@@ -141,7 +190,7 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
                 onClick = {
                     val lottery = Lottery(
                         ownerId = ownerId,
-                        campsiteIds = listOfNotNull(campsiteId),
+                        campsiteIds = selectedCampsiteIds.toList(),
                         registrationStartDate = registrationStart!!,
                         registrationEndDate = registrationEnd!!,
                         bookingStartDate = bookingStart!!,
@@ -168,6 +217,7 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
         }
         Text(text = statusMessage)
         savedLottery?.let { saved ->
+            Text("Campsites: ${lotteryController.campsiteNames(saved.campsiteIds, ownerCampsites).joinToString(", ")}")
             Text("Number of winners: ${saved.numberOfWinners}")
             Text(
                 "Registration: ${formatDateTime(saved.registrationStartDate)} to ${
