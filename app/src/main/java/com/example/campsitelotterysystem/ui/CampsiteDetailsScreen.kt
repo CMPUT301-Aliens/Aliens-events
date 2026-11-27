@@ -18,7 +18,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import com.example.campsitelotterysystem.db.LotteryDB
 import com.example.campsitelotterysystem.model.Campsite
+import com.example.campsitelotterysystem.model.User
 import com.example.campsitelotterysystem.model.Review
 import com.example.campsitelotterysystem.db.DBConnector
 import androidx.compose.material.icons.filled.Person
@@ -31,6 +33,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun CampsiteDetailsScreen(
     campsite: Campsite,
+    userId: String,
     onBack: () -> Unit,
     onRateCampsite: (Int, String, () -> Unit, (String) -> Unit) -> Unit
 ) {
@@ -54,191 +57,211 @@ fun CampsiteDetailsScreen(
     BackHandler {
         onBack()
     }
+    var nextPage by remember { mutableStateOf<Boolean>(false) }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text("Campsite Details")
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Go back"
-                        )
-                    }
-                }
-            )
-        }
-    ) { padding ->
+    if (!nextPage) {
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-        ) {
-
-            // Campsite images
-            if (campsite.promotionalImages.isNotEmpty()) {
-
-                LazyRow(
-                    horizontalArrangement =
-                        Arrangement.spacedBy(8.dp)
-                ) {
-                    items(campsite.promotionalImages) { imageUrl ->
-
-                        AsyncImage(
-                            model = imageUrl,
-                            contentDescription =
-                                "${campsite.name} image",
-                            modifier = Modifier
-                                .width(280.dp)
-                                .height(190.dp),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                }
-
-            } else {
-
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(190.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("No campsite images available")
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = campsite.name,
-                style = MaterialTheme.typography.headlineMedium
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text("Location: ${campsite.location}")
-
-            Text(
-                "Maximum guests: ${campsite.maximumOccupancy}"
-            )
-
-            Text(
-                "Price per night: \$${campsite.pricePerNight}"
-            )
-
-            Text(
-                "Rating: ${String.format("%.1f", campsite.averageRating)}/5 (${campsite.ratingCount} reviews)"
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { showRateDialog = true }) {
-                Text("Rate Campsite")
-            }
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 12.dp)
-            )
-
-            Text(
-                text = "Description",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Text(
-                campsite.description.ifBlank {
-                    "No description available."
-                }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Rules and Policies",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Text(
-                campsite.rulesAndPolicy.ifBlank {
-                    "No rules or policies provided."
-                }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Tags",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Text(
-                campsite.tags.joinToString(", ").ifBlank {
-                    "No tags available."
-                }
-            )
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-
-            Text(
-                text = "Reviews",
-                style = MaterialTheme.typography.titleMedium
-            )
-            
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (reviews.isEmpty()) {
-                Text("No reviews yet.", style = MaterialTheme.typography.bodyMedium)
-            } else {
-                reviews.forEach { review ->
-                    ReviewItem(review)
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(80.dp))
-        }
-
-        if (showRateDialog) {
-            RateCampsiteDialog(
-                onDismiss = { showRateDialog = false },
-                onSubmit = { rating, reviewText ->
-                    if (rating == 0) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Error: Please select a star rating.")
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text("Campsite Details")
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Go back"
+                            )
                         }
-                    } else {
-                        onRateCampsite(rating, reviewText,
-                            {
-                                showRateDialog = false
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Rating saved successfully!")
-                                }
-                            },
-                            { errorMsg ->
-                                showRateDialog = false
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Error: $errorMsg")
-                                }
-                            }
-                        )
+                    }
+                )
+            }
+        ) { padding ->
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+            ) {
+
+                // Campsite images
+                if (campsite.promotionalImages.isNotEmpty()) {
+
+                    LazyRow(
+                        horizontalArrangement =
+                            Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(campsite.promotionalImages) { imageUrl ->
+
+                            AsyncImage(
+                                model = imageUrl,
+                                contentDescription =
+                                    "${campsite.name} image",
+                                modifier = Modifier
+                                    .width(280.dp)
+                                    .height(190.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+
+                } else {
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(190.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("No campsite images available")
+                        }
                     }
                 }
-            )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = campsite.name,
+                    style = MaterialTheme.typography.headlineMedium
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text("Location: ${campsite.location}")
+
+                Text(
+                    "Maximum guests: ${campsite.maximumOccupancy}"
+                )
+
+                Text(
+                    "Price per night: \$${campsite.pricePerNight}"
+                )
+
+                Text(
+                    "Rating: ${
+                        String.format(
+                            "%.1f",
+                            campsite.averageRating
+                        )
+                    }/5 (${campsite.ratingCount} reviews)"
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { showRateDialog = true }) {
+                    Text("Rate Campsite")
+                }
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 12.dp)
+                )
+
+                Text(
+                    text = "Description",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Text(
+                    campsite.description.ifBlank {
+                        "No description available."
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Rules and Policies",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Text(
+                    campsite.rulesAndPolicy.ifBlank {
+                        "No rules or policies provided."
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Tags",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Text(
+                    campsite.tags.joinToString(", ").ifBlank {
+                        "No tags available."
+                    }
+                )
+
+                Button(onClick = { nextPage = true }) {
+                    Text("Proceed to booking page")
+                }
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
+
+                Text(
+                    text = "Reviews",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (reviews.isEmpty()) {
+                    Text("No reviews yet.", style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    reviews.forEach { review ->
+                        ReviewItem(review)
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(80.dp))
+            }
+
+            if (showRateDialog) {
+                RateCampsiteDialog(
+                    onDismiss = { showRateDialog = false },
+                    onSubmit = { rating, reviewText ->
+                        if (rating == 0) {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Error: Please select a star rating.")
+                            }
+                        } else {
+                            onRateCampsite(
+                                rating, reviewText,
+                                {
+                                    showRateDialog = false
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Rating saved successfully!")
+                                    }
+                                },
+                                { errorMsg ->
+                                    showRateDialog = false
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Error: $errorMsg")
+                                    }
+                                }
+                            )
+                        }
+                    }
+                )
+            }
         }
-    }
+    } else {
+        CampsiteDetailsScreen2(
+            userId = userId,
+            campsite = campsite,
+                onBack = { nextPage = false })
+
+}
 }
 
 @Composable
@@ -293,7 +316,7 @@ fun RateCampsiteDialog(
                         }
                     }
                 }
-                
+
                 if (showError) {
                     Text(
                         text = "Error: Please select a star rating.",
@@ -364,9 +387,9 @@ fun ReviewItem(review: Review) {
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.width(12.dp))
-                
+
                 Column {
                     Text(
                         text = review.reviewerName.ifBlank { "Anonymous" },

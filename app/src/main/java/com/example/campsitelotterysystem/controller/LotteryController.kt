@@ -219,6 +219,15 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
         )
     }
 
+    /*returns array of lotteries with user in waitlist*/
+    fun getLotteriesWithUserInWaitlist(
+        userId: String,
+        onSuccess: (List<Lottery>) -> Unit,
+        onFailure: (Exception) -> Unit = {}
+    ) {
+        lotteryDB.getLotteriesWithUserInWaitlist(userId, onSuccess, onFailure)
+    }
+
     /**
      * Finds which of the given campsites are already in an active lottery (#16).
      * Sends back their IDs, so the form can stop the owner from adding them to a second lottery.
@@ -286,7 +295,5 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
             onFailure(it)
         })
     }
-
-
 
 }
