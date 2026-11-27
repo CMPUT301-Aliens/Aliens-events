@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.example.campsitelotterysystem.controller.LotteryController
 import com.example.campsitelotterysystem.db.FirestoreLotteryDB
 import com.example.campsitelotterysystem.db.FirestoreUserDB
 import com.example.campsitelotterysystem.db.LotteryDB
@@ -31,7 +32,10 @@ import com.example.campsitelotterysystem.model.User
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
-
+//unresolved issues:
+//confirmation screen
+//test cases
+//banner colours
 
 
 //The following function is adapted from Anthropic, Claude,
@@ -64,9 +68,9 @@ fun getTimeUntilLotteryEnd(endDate: Date?) : String {
 fun CampsiteDetailsScreen2(
     userId : String,
     campsite: Campsite,
-    lotteryDB: LotteryDB = remember { FirestoreLotteryDB() },
     onBack: () -> Unit
 ) {
+    val lotteryController = remember { LotteryController(FirestoreLotteryDB(), FirestoreUserDB()) }
 
 
 
@@ -102,8 +106,9 @@ fun CampsiteDetailsScreen2(
             var errorMessage by remember {mutableStateOf<String>("")}
             var buttonError by remember {mutableStateOf<Boolean>(false)} //set to true if any error occurs such that lottery loads but button cannot determine correct state
             var isEnrolled by remember {mutableStateOf<Boolean>(false)}
+            var isLoading by remember { mutableStateOf<Boolean>(true) }
 
-            var bannerText by remember {mutableStateOf<String?>(null)}
+            var bannerText by remember {mutableStateOf<String>(" ")}
             var isBannerGreen by remember { mutableStateOf<Boolean>(true) }
 
             fun updateBanner(text : String, bannerIsGreen : Boolean) {
@@ -113,14 +118,16 @@ fun CampsiteDetailsScreen2(
             }
 
             LaunchedEffect(campsite.id) {
-                lotteryDB.getLotteryForCampsite(
+                lotteryController.getLotteryForCampsite(
                     campsiteId = campsite.id,
-                    onSuccess = { campsiteLottery -> lottery = campsiteLottery },
+                    onSuccess = { campsiteLottery -> lottery = campsiteLottery
+                                isLoading = false},
                     onFailure = { errorMessage = "Could not load lottery. Please go back"
+                        isLoading = false
                     }
                 )
                 if (errorMessage == "") {
-                    lotteryDB.getLotteriesWithUserInWaitlist(
+                    lotteryController.getLotteriesWithUserInWaitlist(
                         userId = userId,
                         onSuccess = {usersLotteries -> isEnrolled = (lottery in usersLotteries)},
                         onFailure = { buttonError = true})}
@@ -128,9 +135,9 @@ fun CampsiteDetailsScreen2(
                 }
 
 
+            if (isLoading) { Text("Loading...")}
 
-
-            if (lottery == null) {
+            else if (lottery == null) {
                 if (errorMessage != "") {
                 Text("Error: " + errorMessage)}
                 else {
@@ -144,13 +151,12 @@ fun CampsiteDetailsScreen2(
 
             else {
 
-                bannerText?.let {
-                    Text(
-                        it,
+
+                    Text(bannerText,
                         color = if (isBannerGreen) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.error
                     )
-                }
+
 
 
 
@@ -158,8 +164,12 @@ fun CampsiteDetailsScreen2(
 
                 Text("Lottery Information:")
                 Text("Registration period ends in - ${getTimeUntilLotteryEnd(lottery?.registrationEndDate)}")
-                Text("Current Waitlist -  ${lottery?.waitingList?.size ?: "Error!"}")
-
+                if (lottery!!.waitlistCapacity == null) {
+                    Text("Current Waitlist -  ${lottery?.waitingList?.size ?: "Error!"}")
+                }
+                else {
+                    Text("Current Waitlist -  ${lottery?.waitingList?.size ?: "Error!"} / ${lottery?.waitlistCapacity ?: "Error!"}")
+                }
 
 
 
@@ -172,23 +182,22 @@ fun CampsiteDetailsScreen2(
 
                     Button(onClick = {
                         //attempt to join lottery
-                        var joinedLottery : Lottery
-                        if (userId !in lottery!!.waitingList) {
-                            joinedLottery = lottery!!.copy(waitingList = lottery!!.waitingList + userId)
-                        }
-                        else { //if user is somehow already enrolled, it is easiest to proceed as if they were enrolling, but ensure that they aren't listed twice
-                            joinedLottery = lottery!!.copy()}
-                        lotteryDB.updateLottery(joinedLottery, {
-                            isEnrolled = true
-                            lottery = joinedLottery
-                            //display banner
-                            updateBanner("Successfully enrolled!", true)
+                        lotteryController.joinWaitingList(userId,
+                            lottery!!,
+                            onSuccess = {
+                                updateBanner("Successfully enrolled!", true)
+                                isEnrolled = true
 
-                        },{
-                            buttonError = true
-                            //error banner
-                            updateBanner("Enrolment failed.", false)
-                        })
+                            },
+                            onInvalid = {reason -> updateBanner(text = reason, bannerIsGreen = false)},
+                            onFailure = {
+                                buttonError = true
+                                updateBanner("Enrolment failed.", false)}
+                        )
+                        lotteryController.getLotteryById(lotteryId = lottery!!.id,
+                            onSuccess = {updatedLottery -> lottery = updatedLottery},
+                            onFailure = {errorMessage = "Could not load lottery. Please go back"
+                                lottery = null})
 
                     }) {
                         Text("Join Lottery")
@@ -200,27 +209,24 @@ fun CampsiteDetailsScreen2(
 
                     Button(onClick = {
                         //attempt to leave lottery
-                        var leftLottery : Lottery
-                        if (userId !in lottery!!.waitingList) {
-                            leftLottery = lottery!!.copy(waitingList = lottery!!.waitingList + userId)
-                        }
-                        else {
-                            leftLottery = lottery!!.copy()}
-                        lotteryDB.updateLottery(leftLottery, {
-                            isEnrolled = false
-                            lottery = leftLottery
-                            //display banner
-                            updateBanner("Successfully unenrolled!", true)
+                        lotteryController.leaveWaitingList(userId,
+                            lottery!!,
+                            onSuccess = {
+                                updateBanner(text = "Successfully unenrolled!", bannerIsGreen = true)
+                                isEnrolled = false
+                            },
+                            onFailure = {
+                                buttonError = true
+                                updateBanner("Unenrolment failed.", false)}
+                        )
+                        lotteryController.getLotteryById(lotteryId = lottery!!.id,
+                            onSuccess = {updatedLottery -> lottery = updatedLottery},
+                            onFailure = {errorMessage = "Could not load lottery. Please go back"
+                                lottery = null})
 
-                        },{
-                            buttonError = true
-                            //error banner or smth
-                            updateBanner("Unenrolment failed.", false)
-                        })
+                    })
 
-
-
-                }) {
+                    {
                         Text("Leave Lottery")
                     }}
                 if (buttonError) {
@@ -232,9 +238,6 @@ fun CampsiteDetailsScreen2(
 
 
             }
-
-
-           
         }
     }
 }

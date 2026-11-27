@@ -256,5 +256,69 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
             onFailure(it)
         })
     }
+    /**
+     * US 01.01.06: Adds an entrant's deviceID to a lottery's waiting list if open and not full
+     */
+    fun joinWaitingList(
+        userId: String,
+        lottery: Lottery,
+        onSuccess: () -> Unit,
+        onInvalid: (String) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        if (userId.isBlank()) {
+            onInvalid("Unable to identify user.")
+            return
+        }
+        if (!lottery.isRegistrationOpen(Date())) {
+            onInvalid("Registration for this lottery is not currently open.")
+            return
+        }
+        if (lottery.waitingList.contains(userId)) {
+            onInvalid("You are already on the waiting list for this lottery.")
+            return
+        }
+        val capacity = lottery.waitlistCapacity
+        if (capacity != null && lottery.waitingList.size >= capacity) {
+            onInvalid("This lottery's waiting list is full.")
+            return
+        }
+
+        val updatedLottery = lottery.copy(waitingList = lottery.waitingList + userId)
+        lotteryDB.updateLottery(
+            updatedLottery,
+            onSuccess = { onSuccess() },
+            onFailure = onFailure
+        )
+    }
+
+    /**
+     * Allows an entrant to leave a lottery's waiting list from details screen
+     */
+    fun leaveWaitingList(
+        userId: String,
+        lottery: Lottery,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val updatedLottery = lottery.copy(waitingList = lottery.waitingList.filter { it != userId })
+        lotteryDB.updateLottery(
+            updatedLottery,
+            onSuccess = { onSuccess() },
+            onFailure = onFailure
+        )
+    }
+
+    /**
+     *Allows access to lottery object from it's id
+     */
+    fun getLotteryById(
+        lotteryId: String,
+        onSuccess: (Lottery?) -> Unit,
+        onFailure: (Exception) -> Unit
+    ){
+        lotteryDB.getLotteryById(lotteryId, onSuccess, onFailure)
+    }
+
 
 }

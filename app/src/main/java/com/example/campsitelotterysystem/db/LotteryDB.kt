@@ -1,6 +1,7 @@
 package com.example.campsitelotterysystem.db
 
 import com.example.campsitelotterysystem.model.Lottery
+import com.google.firebase.firestore.FieldValue
 
 /**
  * Purpose: Saves, finds, and removes lotteries in Firestore.
@@ -11,10 +12,43 @@ import com.example.campsitelotterysystem.model.Lottery
 interface LotteryDB {
     fun addLottery(lottery: Lottery, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit)
     fun updateLottery(lottery: Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
-    fun removeAllLotteriesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
-    fun getLotteriesWithUserInWaitlist(userId: String, onSuccess: (List<Lottery>) -> Unit, onFailure: (Exception) -> Unit)
+    fun removeAllLotteriesByOwner(
+        ownerId: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    )
 
-    fun getLotteryForCampsite(campsiteId: String, onSuccess: (Lottery?) -> Unit, onFailure: (Exception) -> Unit)
+    fun getLotteriesWithUserInWaitlist(
+        userId: String,
+        onSuccess: (List<Lottery>) -> Unit,
+        onFailure: (Exception) -> Unit
+    )
+
+    fun getLotteryForCampsite(
+        campsiteId: String,
+        onSuccess: (Lottery?) -> Unit,
+        onFailure: (Exception) -> Unit
+    )
+
+    fun addUserToLottery(
+        userId: String,
+        lottery: Lottery,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    )
+
+    fun removeUserFromLottery(
+        userId: String,
+        lottery: Lottery,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    )
+
+    fun getLotteryById(
+        lotteryId: String,
+        onSuccess: (Lottery?) -> Unit,
+        onFailure: (Exception) -> Unit
+    )
 }
 
 class FirestoreLotteryDB : LotteryDB {
@@ -69,4 +103,24 @@ class FirestoreLotteryDB : LotteryDB {
             .addOnFailureListener { onFailure(it) }
 
     }
+
+    override fun addUserToLottery(userId: String, lottery: Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        lotteries.document(lottery.id).update("waitingList", FieldValue.arrayUnion(userId))
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
+    }
+
+    override fun removeUserFromLottery(userId: String, lottery: Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit){
+        lotteries.document(lottery.id).update("waitingList", FieldValue.arrayRemove(userId))
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
+}
+
+    override fun getLotteryById(lotteryId : String, onSuccess: (Lottery?) -> Unit, onFailure: (Exception) -> Unit) {
+        lotteries.whereEqualTo("id", lotteryId).get()
+            .addOnSuccessListener { documents -> onSuccess(documents.toObjects(Lottery::class.java).firstOrNull { it.id == lotteryId })  }
+            .addOnFailureListener { onFailure(it) }
+
+    }
+
 }
