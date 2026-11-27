@@ -1,4 +1,4 @@
-package com.example.campsitelotterysystem.ui
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -141,8 +141,8 @@ fun AdminProfilesTab(
         val query = searchQuery.trim() // clear leading or trailing spaces in search term
         val filteredUsers = users.filter { user ->
             query.isBlank() ||
-                    user.name.orEmpty().contains(query, ignoreCase = true) ||
-                    user.deviceId.orEmpty().contains(query, ignoreCase = true)
+            user.name.orEmpty().contains(query, ignoreCase = true) ||
+            user.deviceId.orEmpty().contains(query, ignoreCase = true)
         }  // find users, make list
 
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)){
@@ -404,4 +404,3 @@ fun AdminCampsitesTab(
         }
     }
 }
-
