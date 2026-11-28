@@ -32,10 +32,11 @@ import com.example.campsitelotterysystem.model.User
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
-//unresolved issues:
-//confirmation screen
-//test cases
-//banner colours
+/**
+ * Purpose : Displays details regarding campsite lottery, and if running allows enrolment.
+ * Role : Opened from CampsiteDetailsScreen.kt and interacts with lottery controller
+ * Outstanding issues : Confirmation pop-up is not implemented. Code is a bit unorganized.
+ */
 
 
 //The following function is adapted from Anthropic, Claude,

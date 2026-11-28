@@ -29,6 +29,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import kotlinx.coroutines.launch
 
+/**
+ * Purpose : Displays campsite details, reviews, and links to screen where lotteries are entered.
+ * Role : Opened from MainActivity.kt with non-null campsite and opens CampsiteDetailsScreen2.kt by hiding content when variable is set to true
+ * Outstanding issues : None, to my knowledge
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CampsiteDetailsScreen(
