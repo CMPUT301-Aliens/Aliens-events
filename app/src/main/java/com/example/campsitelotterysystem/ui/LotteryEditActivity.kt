@@ -54,7 +54,7 @@ import com.example.campsitelotterysystem.db.FirestoreCampsiteDB
 import com.example.campsitelotterysystem.model.Campsite
 
 /**
- * Purpose: The owner's screen for creating, viewing, and editing a lottery (#15, #17, #32, #16, #33).
+ * Purpose: The owner's screen for creating, viewing, and editing a lottery (#15, #17, #32, #16, #33, #34).
  * Role: Opened by the Manage Lottery button with EXTRA_CAMPSITE_ID. The owner can add more of
  * their campsites to the lottery and edit it until registration ends. Sends the lottery to
  * LotteryController and shows the result. View Waitlist opens LotteryManagementActivity.
@@ -88,6 +88,7 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val ownerId = remember { getCurrentUserId(context) }
     var numberOfWinners by remember { mutableStateOf("") }
+    var waitlistCapacity by remember { mutableStateOf("") }
     var registrationStart by remember { mutableStateOf<Date?>(null) }
     var registrationEnd by remember { mutableStateOf<Date?>(null) }
     var bookingStart by remember { mutableStateOf<Date?>(null) }
@@ -182,6 +183,13 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
                 label = { Text("Number of winners") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
+            // #34: optional limit on the waitlist. Leave it blank for no limit.
+            OutlinedTextField(
+                value = waitlistCapacity,
+                onValueChange = { waitlistCapacity = it },
+                label = { Text("Waitlist capacity (optional)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
             DateTimeField("Registration start", registrationStart) { registrationStart = it }
             DateTimeField("Registration end", registrationEnd) { registrationEnd = it }
             DateTimeField("Booking start", bookingStart) { bookingStart = it }
@@ -196,7 +204,9 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
                         registrationEndDate = registrationEnd!!,
                         bookingStartDate = bookingStart!!,
                         bookingEndDate = bookingEnd!!,
-                        numberOfWinners = numberOfWinners.toIntOrNull() ?: 0
+                        numberOfWinners = numberOfWinners.toIntOrNull() ?: 0,
+                        // #34: blank means no limit. Anything that isn't a whole number becomes 0, so it shows an error.
+                        waitlistCapacity = if (waitlistCapacity.isBlank()) null else waitlistCapacity.trim().toIntOrNull() ?: 0
                     )
                     isSaving = true
                     val saved = savedLottery
@@ -256,6 +266,7 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
         savedLottery?.takeIf { !isEditing }?.let { saved ->
             Text("Campsites: ${lotteryController.campsiteNames(saved.campsiteIds, ownerCampsites).joinToString(", ")}")
             Text("Number of winners: ${saved.numberOfWinners}")
+            Text("Waitlist capacity: ${saved.waitlistCapacity ?: "No limit"}")
             Text("Registration: ${formatDateTime(saved.registrationStartDate)} to ${formatDateTime(saved.registrationEndDate)}")
             Text("Booking: ${formatDateTime(saved.bookingStartDate)} to ${formatDateTime(saved.bookingEndDate)}")
             Button(onClick = {
@@ -270,6 +281,7 @@ fun LotteryEditScreen(campsiteId: String?, modifier: Modifier = Modifier) {
             if (saved.canBeEdited(Date())) {
                 OutlinedButton(onClick = {
                     numberOfWinners = saved.numberOfWinners.toString()
+                    waitlistCapacity = saved.waitlistCapacity?.toString() ?: ""
                     registrationStart = saved.registrationStartDate
                     registrationEnd = saved.registrationEndDate
                     bookingStart = saved.bookingStartDate

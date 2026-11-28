@@ -39,7 +39,7 @@ import com.example.campsitelotterysystem.db.FirestoreNotificationDB
 import com.example.campsitelotterysystem.db.getCurrentUserId
 
 /**
- * Purpose: The owner's Waitlist & Winner Management screen (#41, #35, #43).
+ * Purpose: The owner's Waitlist & Winner Management screen (#41, #35, #43, #34).
  * Role: Opened from the lottery details with EXTRA_CAMPSITE_ID. Loads the campsite's
  * lottery, runs the draw if registration has ended, then shows the entrants and winners.
  * The owner can tick entrants and send them a notification.
@@ -143,7 +143,16 @@ fun LotteryManagementScreen(campsiteId: String?, modifier: Modifier = Modifier) 
         }
 
         lottery?.let { current ->
-            Text("Total entrants: ${current.waitingList.size}")
+            // #34: show the count out of the capacity, if the owner set one.
+            val capacity = current.waitlistCapacity
+            if (capacity == null) {
+                Text("Total entrants: ${current.waitingList.size} (no limit)")
+            } else {
+                Text("Total entrants: ${current.waitingList.size} / $capacity")
+            }
+            if (current.isWaitlistFull()) {
+                Text("The waitlist is full, so no one else can join.")
+            }
             Text("Winners to draw: ${current.numberOfWinners}")
 
             if (current.status == "drawn") {

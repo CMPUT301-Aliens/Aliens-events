@@ -4,7 +4,7 @@ import java.util.Date
  * Purpose: Data model for one campsite lottery.
  * Role: Stored in the "lotteries" Firestore collection. Created by LotteryController
  * and read by entrants who join the waiting list.
- * Outstanding issues: waitlistCapacity is not used yet (#34).
+ * Outstanding issues: None. isWaitlistFull (#34) tells the join code when the waitlist is full.
  * status changes from "open" to "drawn" when the draw (#35) runs.
  * @property id Firestore document ID
  * @property ownerId device ID of the owner who created the lottery
@@ -67,5 +67,15 @@ data class Lottery(
      */
     fun canBeEdited(now: Date): Boolean {
         return status == "open" && !now.after(registrationEndDate)
+    }
+
+    /**
+     * Checks whether the waiting list has reached its capacity (#34).
+     *
+     * @return true if a capacity is set and the waiting list has that many entrants or more
+     */
+    fun isWaitlistFull(): Boolean {
+        val capacity = waitlistCapacity ?: return false
+        return waitingList.size >= capacity
     }
 }

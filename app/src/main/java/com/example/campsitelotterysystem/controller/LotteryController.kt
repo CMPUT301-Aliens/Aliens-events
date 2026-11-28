@@ -37,6 +37,10 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
 
             errors.add("Booking end must be after booking start.")
         }
+        val capacity = lottery.waitlistCapacity
+        if (capacity != null && capacity <= 0) {
+            errors.add("Waitlist capacity must be greater than zero.")
+        }
 
 
 
@@ -84,7 +88,7 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
 
     /**
      * Saves an owner's changes to a lottery that already exists (#33).
-     * Only the campsites, dates, and number of winners change. The ID, owner, waiting list,
+     * Only the campsites, dates, number of winners, and waitlist capacity (#34) change. The ID, owner, waiting list,
      * and winners stay the same. Edits are only allowed until registration ends, and the new
      * registration end can't be in the past.
      * Sends the saved lottery to onSuccess, or the problems to onInvalid.
@@ -107,11 +111,16 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
             registrationEndDate = changes.registrationEndDate,
             bookingStartDate = changes.bookingStartDate,
             bookingEndDate = changes.bookingEndDate,
-            numberOfWinners = changes.numberOfWinners
+            numberOfWinners = changes.numberOfWinners,
+            waitlistCapacity = changes.waitlistCapacity
         )
         val errors = validateLottery(updated).toMutableList()
         if (updated.registrationEndDate.before(now)) {
             errors.add("Registration end can't be in the past.")
+        }
+        val capacity = updated.waitlistCapacity
+        if (capacity != null && capacity > 0 && capacity < saved.waitingList.size) {
+            errors.add("Waitlist capacity can't be less than the number of people already on the waitlist (${saved.waitingList.size}).")
         }
         if (errors.isNotEmpty()) {
             onInvalid(errors)
