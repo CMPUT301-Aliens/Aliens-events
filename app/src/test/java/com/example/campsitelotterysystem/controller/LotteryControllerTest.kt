@@ -39,6 +39,29 @@ class LotteryControllerTest {
             updated.add(lottery)
             onSuccess()
         }
+
+        val detailsUpdated = mutableListOf<Lottery>()
+
+        override fun updateLotteryDetails(
+            lottery: Lottery,
+            onSuccess: () -> Unit,
+            onFailure: (Exception) -> Unit
+        ) {
+            detailsUpdated.add(lottery)
+            // Like Firestore's update(): only the editable fields change on the saved lottery.
+            val index = added.indexOfFirst { it.id == lottery.id }
+            if (index >= 0) {
+                added[index] = added[index].copy(
+                    campsiteIds = lottery.campsiteIds,
+                    registrationStartDate = lottery.registrationStartDate,
+                    registrationEndDate = lottery.registrationEndDate,
+                    bookingStartDate = lottery.bookingStartDate,
+                    bookingEndDate = lottery.bookingEndDate,
+                    numberOfWinners = lottery.numberOfWinners
+                )
+            }
+            onSuccess()
+        }
         override fun removeAllLotteriesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
             onSuccess()
         }
@@ -440,11 +463,11 @@ class LotteryControllerTest {
             onFailure = { throw it }
         )
 
-        assertEquals(lotteryId, db.updated[0].id)
-        assertEquals(listOf(avery, maya), db.updated[0].waitingList)
-        assertEquals(1, db.updated[0].numberOfWinners)
-        assertEquals(Date(2500), db.updated[0].registrationEndDate)
-        assertEquals(db.updated[0], result)
+        assertEquals(lotteryId, db.detailsUpdated[0].id)
+        assertEquals(listOf(avery, maya), db.detailsUpdated[0].waitingList)
+        assertEquals(1, db.detailsUpdated[0].numberOfWinners)
+        assertEquals(Date(2500), db.detailsUpdated[0].registrationEndDate)
+        assertEquals(db.detailsUpdated[0], result)
     }
 
     @Test
@@ -461,7 +484,7 @@ class LotteryControllerTest {
         )
 
         assertEquals(listOf("This lottery can't be changed after registration ends."), errors)
-        assertTrue(db.updated.isEmpty())
+        assertTrue(db.detailsUpdated.isEmpty())
     }
 
     @Test
@@ -478,7 +501,7 @@ class LotteryControllerTest {
         )
 
         assertEquals(listOf("Registration end can't be in the past."), errors)
-        assertTrue(db.updated.isEmpty())
+        assertTrue(db.detailsUpdated.isEmpty())
     }
 
     @Test
@@ -495,7 +518,25 @@ class LotteryControllerTest {
         )
 
         assertEquals(listOf("Number of winners must be greater than zero."), errors)
-        assertTrue(db.updated.isEmpty())
+        assertTrue(db.detailsUpdated.isEmpty())
     }
 
+    @Test
+    fun editDoesNotRemoveSomeoneWhoJoinedMeanwhile() {
+        val db = FakeLotteryDB()
+        // The owner opened the edit form when only Avery and Maya had joined...
+        val saved = validLottery.copy(id = lotteryId, waitingList = listOf(avery, maya))
+        // ...but Jordan joined before the owner pressed Save Changes.
+        db.added.add(saved.copy(waitingList = listOf(avery, maya, jordan)))
+
+        LotteryController(db, FakeUserDB()).editLotteryListing(
+            saved, saved.copy(numberOfWinners = 1), Date(1500),
+            onSuccess = {},
+            onInvalid = { throw AssertionError("should be valid: $it") },
+            onFailure = { throw it }
+        )
+
+        assertEquals(listOf(avery, maya, jordan), db.added[0].waitingList)
+        assertEquals(1, db.added[0].numberOfWinners)
+    }
 }

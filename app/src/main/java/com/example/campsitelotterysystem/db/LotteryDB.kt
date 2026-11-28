@@ -11,6 +11,13 @@ import com.example.campsitelotterysystem.model.Lottery
 interface LotteryDB {
     fun addLottery(lottery: Lottery, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit)
     fun updateLottery(lottery: Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
+
+    /**
+     * Saves only the details an owner can edit: campsites, dates, and number of winners (#33).
+     * It never touches the waiting list, winners, or status, so nobody who joins while the
+     * owner is editing gets removed.
+     */
+    fun updateLotteryDetails(lottery: Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
     fun removeAllLotteriesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
     fun getLotteriesWithUserInWaitlist(userId: String, onSuccess: (List<Lottery>) -> Unit, onFailure: (Exception) -> Unit)
 
@@ -37,6 +44,25 @@ class FirestoreLotteryDB : LotteryDB {
         onFailure: (Exception) -> Unit
     ) {
         lotteries.document(lottery.id).set(lottery)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
+    }
+
+    override fun updateLotteryDetails(
+        lottery: Lottery,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        lotteries.document(lottery.id).update(
+            mapOf(
+                "campsiteIds" to lottery.campsiteIds,
+                "registrationStartDate" to lottery.registrationStartDate,
+                "registrationEndDate" to lottery.registrationEndDate,
+                "bookingStartDate" to lottery.bookingStartDate,
+                "bookingEndDate" to lottery.bookingEndDate,
+                "numberOfWinners" to lottery.numberOfWinners
+            )
+        )
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { onFailure(it) }
     }
