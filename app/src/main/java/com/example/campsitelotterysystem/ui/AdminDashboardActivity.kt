@@ -1,4 +1,6 @@
+package com.example.campsitelotterysystem.ui
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,6 +24,7 @@ import com.example.campsitelotterysystem.model.Campsite
 import com.example.campsitelotterysystem.model.User
 import com.example.campsitelotterysystem.ui.theme.CampsiteLotterySystemTheme
 import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * handles browsing campsites, browsing user profiles, and deleting profiles.
@@ -83,10 +86,20 @@ fun AdminDashboardScreen(modifier: Modifier = Modifier) {
     val tabs = listOf("Profiles", "Campsites")
 
     //screen tabs for navigation
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    context.startActivity(Intent(context, ImageGalleryActivity::class.java))
+                }
+            ) {
+                Text("Image Gallery")
+            }
+        },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
@@ -141,8 +154,8 @@ fun AdminProfilesTab(
         val query = searchQuery.trim() // clear leading or trailing spaces in search term
         val filteredUsers = users.filter { user ->
             query.isBlank() ||
-            user.name.orEmpty().contains(query, ignoreCase = true) ||
-            user.deviceId.orEmpty().contains(query, ignoreCase = true)
+                    user.name.orEmpty().contains(query, ignoreCase = true) ||
+                    user.deviceId.orEmpty().contains(query, ignoreCase = true)
         }  // find users, make list
 
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)){
@@ -404,3 +417,4 @@ fun AdminCampsitesTab(
         }
     }
 }
+
