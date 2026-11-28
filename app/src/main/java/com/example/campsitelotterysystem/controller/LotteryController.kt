@@ -117,7 +117,7 @@ class LotteryController(private val lotteryDB: LotteryDB, private val userDB: Us
             onInvalid(errors)
             return
         }
-        lotteryDB.updateLottery(updated, onSuccess = { onSuccess(updated) }, onFailure = onFailure)
+        lotteryDB.updateLotteryDetails(updated, onSuccess = { onSuccess(updated) }, onFailure = onFailure)
     }
     /** Finds the campsite's current lottery, or null if it has none. */
     fun getLotteryForCampsite(campsiteId: String, onSuccess: (Lottery?) -> Unit, onFailure: (Exception) -> Unit)

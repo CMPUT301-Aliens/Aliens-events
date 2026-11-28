@@ -49,6 +49,7 @@ class UserControllerTest {
     private val dummyLotteryDB = object : LotteryDB {
         override fun addLottery(lottery: com.example.campsitelotterysystem.model.Lottery, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {}
         override fun updateLottery(lottery: com.example.campsitelotterysystem.model.Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {}
+        override fun updateLotteryDetails(lottery: com.example.campsitelotterysystem.model.Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {}
         override fun removeAllLotteriesByOwner(ownerId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {}
         override fun getLotteriesWithUserInWaitlist(userId: String, onSuccess: (List<com.example.campsitelotterysystem.model.Lottery>) -> Unit, onFailure: (Exception) -> Unit) {}
         override fun getLotteryForCampsite(campsiteId: String, onSuccess: (com.example.campsitelotterysystem.model.Lottery?) -> Unit, onFailure: (Exception) -> Unit) {}
