@@ -11,7 +11,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * UI tests for the lottery screens (#17, #32, #41).
+ * UI tests for the lottery screens (#17, #32, #41, #34).
  * They open the screens with no campsite, so they don't need any Firestore data.
  */
 class LotteryScreensTest {
@@ -29,6 +29,7 @@ class LotteryScreensTest {
         composeRule.setContent { LotteryEditScreen(campsiteId = null) }
 
         composeRule.onNodeWithText("Number of winners").assertIsDisplayed()
+        composeRule.onNodeWithText("Waitlist capacity (optional)").assertIsDisplayed()
         composeRule.onNodeWithText("Registration start").assertIsDisplayed()
         composeRule.onNodeWithText("Registration end").assertIsDisplayed()
         composeRule.onNodeWithText("Booking start").assertIsDisplayed()

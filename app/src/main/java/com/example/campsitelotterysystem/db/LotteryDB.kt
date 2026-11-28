@@ -13,7 +13,7 @@ interface LotteryDB {
     fun updateLottery(lottery: Lottery, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
 
     /**
-     * Saves only the details an owner can edit: campsites, dates, and number of winners (#33).
+     * Saves only the details an owner can edit: campsites, dates, number of winners, and waitlist capacity (#33, #34).
      * It never touches the waiting list, winners, or status, so nobody who joins while the
      * owner is editing gets removed.
      */
@@ -60,7 +60,8 @@ class FirestoreLotteryDB : LotteryDB {
                 "registrationEndDate" to lottery.registrationEndDate,
                 "bookingStartDate" to lottery.bookingStartDate,
                 "bookingEndDate" to lottery.bookingEndDate,
-                "numberOfWinners" to lottery.numberOfWinners
+                "numberOfWinners" to lottery.numberOfWinners,
+                "waitlistCapacity" to lottery.waitlistCapacity
             )
         )
             .addOnSuccessListener { onSuccess() }

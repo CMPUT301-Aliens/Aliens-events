@@ -57,7 +57,8 @@ class LotteryControllerTest {
                     registrationEndDate = lottery.registrationEndDate,
                     bookingStartDate = lottery.bookingStartDate,
                     bookingEndDate = lottery.bookingEndDate,
-                    numberOfWinners = lottery.numberOfWinners
+                    numberOfWinners = lottery.numberOfWinners,
+                    waitlistCapacity = lottery.waitlistCapacity
                 )
             }
             onSuccess()
@@ -538,5 +539,75 @@ class LotteryControllerTest {
 
         assertEquals(listOf(avery, maya, jordan), db.added[0].waitingList)
         assertEquals(1, db.added[0].numberOfWinners)
+    }
+
+    @Test
+    fun lotteryWithNoCapacityIsValid() {
+        assertTrue(controller.validateLottery(validLottery.copy(waitlistCapacity = null)).isEmpty())
+    }
+
+    @Test
+    fun zeroCapacityIsAnError() {
+        val errors = controller.validateLottery(validLottery.copy(waitlistCapacity = 0))
+        assertEquals(listOf("Waitlist capacity must be greater than zero."), errors)
+    }
+
+    @Test
+    fun negativeCapacityIsAnError() {
+        val errors = controller.validateLottery(validLottery.copy(waitlistCapacity = -5))
+        assertEquals(listOf("Waitlist capacity must be greater than zero."), errors)
+    }
+
+    @Test
+    fun editCanChangeCapacity() {
+        val db = FakeLotteryDB()
+        val saved = validLottery.copy(id = lotteryId, waitingList = listOf(avery, maya))
+        db.added.add(saved)
+
+        LotteryController(db, FakeUserDB()).editLotteryListing(
+            saved, saved.copy(waitlistCapacity = 5), Date(1500),
+            onSuccess = {},
+            onInvalid = { throw AssertionError("should be valid: $it") },
+            onFailure = { throw it }
+        )
+
+        assertEquals(5, db.added[0].waitlistCapacity)
+        assertEquals(listOf(avery, maya), db.added[0].waitingList)
+    }
+
+    @Test
+    fun editCanRemoveCapacity() {
+        val db = FakeLotteryDB()
+        val saved = validLottery.copy(id = lotteryId, waitlistCapacity = 10)
+        db.added.add(saved)
+
+        LotteryController(db, FakeUserDB()).editLotteryListing(
+            saved, saved.copy(waitlistCapacity = null), Date(1500),
+            onSuccess = {},
+            onInvalid = { throw AssertionError("should be valid: $it") },
+            onFailure = { throw it }
+        )
+
+        assertNull(db.added[0].waitlistCapacity)
+    }
+
+    @Test
+    fun editCannotSetCapacityBelowWaitlist() {
+        val db = FakeLotteryDB()
+        val saved = validLottery.copy(id = lotteryId, waitingList = listOf(avery, maya, jordan))
+        var errors = emptyList<String>()
+
+        LotteryController(db, FakeUserDB()).editLotteryListing(
+            saved, saved.copy(waitlistCapacity = 2), Date(1500),
+            onSuccess = { throw AssertionError("should not save") },
+            onInvalid = { errors = it },
+            onFailure = { throw it }
+        )
+
+        assertEquals(
+            listOf("Waitlist capacity can't be less than the number of people already on the waitlist (3)."),
+            errors
+        )
+        assertTrue(db.detailsUpdated.isEmpty())
     }
 }
